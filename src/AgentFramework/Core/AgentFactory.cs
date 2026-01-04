@@ -1,19 +1,18 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
-using Agent.Configuration;
-using Agent.Infrastructure;
-using Agent.Tools;
+using AgentFramework.Configuration;
+using AgentFramework.Infrastructure;
+using AgentFramework.Tools;
 
-namespace Agent.Core;
+namespace AgentFramework.Core;
 
 public static class AgentFactory
 {
     private static readonly InstructionsLoader _instructionsLoader = new();
-    private static readonly ToolRegistry _toolRegistry = new();
     private static ILoggerFactory? _loggerFactory;
 
-    public static Dictionary<string, DevUIAwareAgent> Load(AppSettings appSettings)
+    public static Dictionary<string, DevUIAwareAgent> Load(AppSettings appSettings, ToolRegistry toolRegistry)
     {
         // Set up logging
         _loggerFactory = LoggerFactory.Create(builder =>
@@ -31,7 +30,7 @@ public static class AgentFactory
             var aiAgent = chatClient.CreateAIAgent(
                 instructions: _instructionsLoader.Load(a.InstructionsFileName),
                 name: a.Name,
-                tools: _toolRegistry.GetTools(a.Tools));
+                tools: toolRegistry.GetTools(a.Tools));
 
             var logger = _loggerFactory.CreateLogger(a.Name);
             agents[a.Name] = new DevUIAwareAgent(aiAgent, appSettings.Provider, logger);

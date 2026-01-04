@@ -1,6 +1,6 @@
-using Agent.Infrastructure.Providers;
+using AgentFramework.Infrastructure.Providers;
 
-namespace Agent.Infrastructure;
+namespace AgentFramework.Infrastructure;
 
 public static class ChatClientProviderFactory
 {

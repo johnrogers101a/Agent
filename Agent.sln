@@ -2,7 +2,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.1.11312.151 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Agent", "src\AgentFramework\Agent.csproj", "{AEF9CCA9-6196-3F19-3B50-772B7E66CDE4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentFramework", "src\AgentFramework\AgentFramework.csproj", "{AEF9CCA9-6196-3F19-3B50-772B7E66CDE4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoogleTools", "src\GoogleTools\GoogleTools.csproj", "{B1234567-1234-1234-1234-123456789012}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PersonalAgent", "src\PersonalAgent\PersonalAgent.csproj", "{C1234567-1234-1234-1234-123456789013}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -14,6 +18,14 @@ Global
 		{AEF9CCA9-6196-3F19-3B50-772B7E66CDE4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AEF9CCA9-6196-3F19-3B50-772B7E66CDE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AEF9CCA9-6196-3F19-3B50-772B7E66CDE4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1234567-1234-1234-1234-123456789012}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1234567-1234-1234-1234-123456789012}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1234567-1234-1234-1234-123456789012}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1234567-1234-1234-1234-123456789012}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1234567-1234-1234-1234-123456789013}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1234567-1234-1234-1234-123456789013}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1234567-1234-1234-1234-123456789013}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1234567-1234-1234-1234-123456789013}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

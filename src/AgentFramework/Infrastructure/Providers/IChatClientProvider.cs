@@ -1,7 +1,7 @@
 using Microsoft.Extensions.AI;
-using static Agent.Configuration.AppSettings;
+using static AgentFramework.Configuration.AppSettings;
 
-namespace Agent.Infrastructure.Providers;
+namespace AgentFramework.Infrastructure.Providers;
 
 public interface IChatClientProvider
 {

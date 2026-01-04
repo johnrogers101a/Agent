@@ -7,9 +7,9 @@ using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.DevUI;
 using Microsoft.Agents.AI.Hosting;
 using Microsoft.Agents.AI.Hosting.OpenAI;
-using static Agent.Configuration.AppSettings;
+using static AgentFramework.Configuration.AppSettings;
 
-namespace Agent.Core;
+namespace AgentFramework.Core;
 
 /// <summary>
 /// Wraps an AIAgent to provide DevUI support or console logging based on settings.

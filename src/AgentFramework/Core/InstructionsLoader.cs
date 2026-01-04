@@ -1,4 +1,4 @@
-namespace Agent.Core;
+namespace AgentFramework.Core;
 
 public class InstructionsLoader
 {

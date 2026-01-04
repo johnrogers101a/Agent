@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Configuration;
 
-namespace Agent.Configuration;
+namespace AgentFramework.Configuration;
 
 public class AppSettings
 {

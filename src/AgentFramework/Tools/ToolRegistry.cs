@@ -1,17 +1,15 @@
 using Microsoft.Extensions.AI;
 
-namespace Agent.Tools;
+namespace AgentFramework.Tools;
 
 public class ToolRegistry
 {
-    private readonly Dictionary<string, AITool> _tools = new()
+    private readonly Dictionary<string, AITool> _tools = new();
+
+    public void Register(string name, AITool tool)
     {
-        ["GetWeatherByZip"] = WeatherTool.CreateGetWeatherByZip(),
-        ["GetWeatherByCityState"] = WeatherTool.CreateGetWeatherByCityState(),
-        ["GetMail"] = GmailTool.CreateGetMail(),
-        ["SearchMail"] = GmailTool.CreateSearchMail(),
-        ["GetMailContents"] = GmailTool.CreateGetMailContents()
-    };
+        _tools[name] = tool;
+    }
 
     public IList<AITool> GetTools(IEnumerable<string> toolNames)
     {
