@@ -6,6 +6,8 @@ public class AppSettings
 {
     public ProviderSettings Provider { get; set; } = new();
     public ClientsSettings Clients { get; set; } = new();
+    public string ToolsFolder { get; set; } = "Tools/";
+    public List<ToolSettings> Tools { get; set; } = [];
     public List<AgentSettings> Agents { get; set; } = [];
 
     public static AppSettings LoadConfiguration(string fileName = "appsettings.json")
@@ -41,6 +43,13 @@ public class AppSettings
     {
         public string ClientId { get; set; } = string.Empty;
         public string ClientSecret { get; set; } = string.Empty;
+    }
+
+    public class ToolSettings
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Class { get; set; } = string.Empty;
+        public string FactoryMethod { get; set; } = string.Empty;
     }
 
     public class AgentSettings

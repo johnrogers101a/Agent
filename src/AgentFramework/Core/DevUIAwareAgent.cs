@@ -30,6 +30,11 @@ public class DevUIAwareAgent
         _logger = logger;
     }
 
+    /// <summary>
+    /// Gets the underlying AIAgent instance.
+    /// </summary>
+    public AIAgent Agent => _agent;
+
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
         await RunAsync(string.Empty, cancellationToken);

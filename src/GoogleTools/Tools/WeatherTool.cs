@@ -1,7 +1,7 @@
 using System.ComponentModel;
-using GoogleTools.Clients.GoogleWeather;
-using GoogleTools.Clients.NominatimCityState;
-using GoogleTools.Models;
+using GoogleApiClient.Weather;
+using GoogleApiClient.NominatimCityState;
+using GoogleApiClient.Models;
 using AgentFramework.Configuration;
 using Microsoft.Extensions.AI;
 
@@ -11,10 +11,9 @@ public static class WeatherTool
 {
     private static readonly AppSettings _settings = AppSettings.LoadConfiguration();
     private static readonly HttpClient _httpClient = new();
-    private static readonly IGoogleWeatherService _weatherService = new GoogleWeatherService(_httpClient, _settings.Clients.GoogleWeather.ApiKey);
+    private static readonly IWeatherService _weatherService = new WeatherService(_httpClient, _settings.Clients.GoogleWeather.ApiKey);
     private static readonly INominatimCityStateService _nominatimService = new NominatimCityStateService(_httpClient);
 
-    [Description("Gets the current weather for a US zip code")]
     public static async Task<WeatherToolResult?> GetWeatherByZip(
         [Description("The US zip code to get weather for")] string zipCode)
     {
@@ -40,7 +39,6 @@ public static class WeatherTool
             UvIndex: weather.UvIndex);
     }
 
-    [Description("Gets the current weather for a US city and state")]
     public static async Task<WeatherToolResult?> GetWeatherByCityState(
         [Description("The city name")] string city,
         [Description("The state name or abbreviation")] string state)
@@ -67,19 +65,19 @@ public static class WeatherTool
             UvIndex: weather.UvIndex);
     }
 
-    public static AIFunction CreateGetWeatherByZip()
+    public static AIFunction CreateGetWeatherByZip(string? description = null)
     {
         return AIFunctionFactory.Create(
             GetWeatherByZip,
             name: "GetWeatherByZip",
-            description: "Gets the current weather for a US zip code");
+            description: description ?? "Gets the current weather for a US zip code");
     }
 
-    public static AIFunction CreateGetWeatherByCityState()
+    public static AIFunction CreateGetWeatherByCityState(string? description = null)
     {
         return AIFunctionFactory.Create(
             GetWeatherByCityState,
             name: "GetWeatherByCityState",
-            description: "Gets the current weather for a US city and state");
+            description: description ?? "Gets the current weather for a US city and state");
     }
 }

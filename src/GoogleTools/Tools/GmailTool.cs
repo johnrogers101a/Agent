@@ -1,6 +1,6 @@
 using System.ComponentModel;
-using GoogleTools.Clients.Gmail;
-using GoogleTools.Models;
+using GoogleApiClient.Gmail;
+using GoogleApiClient.Models;
 using AgentFramework.Configuration;
 using Microsoft.Extensions.AI;
 
@@ -16,7 +16,6 @@ public static class GmailTool
         _settings.Clients.Gmail.ClientSecret);
     private static readonly IGmailService _gmailService = new GmailService(_httpClient, _authService);
 
-    [Description("Gets the latest 20 emails from the user's Gmail inbox")]
     public static async Task<EmailListResult> GetMail()
     {
         var messages = await _gmailService.GetMailAsync(maxResults: 20);
@@ -32,7 +31,6 @@ public static class GmailTool
                 Preview: msg.Snippet)).ToList());
     }
 
-    [Description("Searches emails using Gmail search syntax (e.g., 'from:user@example.com', 'is:unread', 'subject:hello')")]
     public static async Task<EmailListResult> SearchMail(
         [Description("The Gmail search query")] string query)
     {
@@ -49,7 +47,6 @@ public static class GmailTool
                 Preview: msg.Snippet)).ToList());
     }
 
-    [Description("Gets the full contents of a specific email by its ID")]
     public static async Task<EmailDetailResult?> GetMailContents(
         [Description("The Gmail message ID")] string messageId)
     {
@@ -70,27 +67,27 @@ public static class GmailTool
             Body: message.Body);
     }
 
-    public static AIFunction CreateGetMail()
+    public static AIFunction CreateGetMail(string? description = null)
     {
         return AIFunctionFactory.Create(
             GetMail,
             name: "GetMail",
-            description: "Gets the latest 20 emails from the user's Gmail inbox");
+            description: description ?? "Gets the latest 20 emails from the user's Gmail inbox");
     }
 
-    public static AIFunction CreateSearchMail()
+    public static AIFunction CreateSearchMail(string? description = null)
     {
         return AIFunctionFactory.Create(
             SearchMail,
             name: "SearchMail",
-            description: "Searches emails using Gmail search syntax (e.g., 'from:user@example.com', 'is:unread', 'subject:hello')");
+            description: description ?? "Searches emails using Gmail search syntax");
     }
 
-    public static AIFunction CreateGetMailContents()
+    public static AIFunction CreateGetMailContents(string? description = null)
     {
         return AIFunctionFactory.Create(
             GetMailContents,
             name: "GetMailContents",
-            description: "Gets the full contents of a specific email by its ID");
+            description: description ?? "Gets the full contents of a specific email by its ID");
     }
 }
