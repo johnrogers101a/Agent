@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
+using static GoogleApiClient.Constants;
 
 namespace GoogleApiClient.Gmail;
 
@@ -43,7 +44,7 @@ public class GmailService : IGmailService
         var accessToken = await _authService.GetAccessTokenAsync();
         if (string.IsNullOrEmpty(accessToken))
         {
-            Console.WriteLine("[Gmail] Authentication required but not completed.");
+            Console.WriteLine(GmailApiMessages.AuthenticationRequired);
             return messages;
         }
 
@@ -60,7 +61,7 @@ public class GmailService : IGmailService
         if (!response.IsSuccessStatusCode)
         {
             var errorBody = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"[Gmail API Error] Status: {response.StatusCode}, Body: {errorBody}");
+            Console.WriteLine(string.Format(GmailApiMessages.ApiError, response.StatusCode, errorBody));
             return messages;
         }
 
@@ -101,33 +102,44 @@ public class GmailService : IGmailService
 
     private static GmailMessage ConvertToMessage(GmailMessageResponse response)
     {
-        var headers = response.Payload?.Headers ?? [];
+        var (from, to, subject, date) = ExtractCommonFields(response);
         
         return new GmailMessage(
             Id: response.Id,
             ThreadId: response.ThreadId,
             Snippet: response.Snippet,
-            From: GetHeader(headers, "From"),
-            To: GetHeader(headers, "To"),
-            Subject: GetHeader(headers, "Subject"),
-            Date: ParseDate(response.InternalDate)
+            From: from,
+            To: to,
+            Subject: subject,
+            Date: date
         );
     }
 
     private static GmailMessageDetail ConvertToMessageDetail(GmailMessageResponse response)
     {
-        var headers = response.Payload?.Headers ?? [];
+        var (from, to, subject, date) = ExtractCommonFields(response);
         var body = ExtractBody(response.Payload);
 
         return new GmailMessageDetail(
             Id: response.Id,
             ThreadId: response.ThreadId,
             Snippet: response.Snippet,
-            From: GetHeader(headers, "From"),
-            To: GetHeader(headers, "To"),
-            Subject: GetHeader(headers, "Subject"),
-            Date: ParseDate(response.InternalDate),
+            From: from,
+            To: to,
+            Subject: subject,
+            Date: date,
             Body: body
+        );
+    }
+
+    private static (string From, string To, string Subject, DateTime Date) ExtractCommonFields(GmailMessageResponse response)
+    {
+        var headers = response.Payload?.Headers ?? [];
+        return (
+            GetHeader(headers, "From"),
+            GetHeader(headers, "To"),
+            GetHeader(headers, "Subject"),
+            ParseDate(response.InternalDate)
         );
     }
 

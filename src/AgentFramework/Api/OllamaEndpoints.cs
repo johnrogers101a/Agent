@@ -286,33 +286,10 @@ public static class OllamaEndpoints
 
     private static async Task<string> RunAgentAsync(DevUIAwareAgent agent, string prompt)
     {
-        // For now, use a simple approach - capture console output
-        // In a real implementation, you'd want to modify DevUIAwareAgent to return the response
         try
         {
-            var originalOut = Console.Out;
-            var sw = new StringWriter();
-            Console.SetOut(sw);
-
-            try
-            {
-                await agent.RunAsync(prompt);
-                var output = sw.ToString();
-                
-                // Extract the actual response from log output
-                var responsePrefix = "response:";
-                var responseIndex = output.IndexOf(responsePrefix, StringComparison.OrdinalIgnoreCase);
-                if (responseIndex >= 0)
-                {
-                    return output[(responseIndex + responsePrefix.Length)..].Trim();
-                }
-                
-                return output.Trim();
-            }
-            finally
-            {
-                Console.SetOut(originalOut);
-            }
+            var response = await agent.RunAsync(prompt);
+            return response ?? string.Empty;
         }
         catch (Exception ex)
         {

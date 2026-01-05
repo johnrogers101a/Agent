@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using static GoogleApiClient.Constants;
 
 namespace GoogleApiClient.Gmail;
 
@@ -68,19 +69,19 @@ public class GoogleAuthService
         var deviceCode = await RequestDeviceCodeAsync();
         if (deviceCode is null)
         {
-            Console.WriteLine("[Gmail Auth] Failed to get device code.");
+            Console.WriteLine(GmailAuthMessages.FailedToGetDeviceCode);
             return null;
         }
 
         // Step 2: Display instructions to user
         Console.WriteLine();
-        Console.WriteLine("╔════════════════════════════════════════════════════════════╗");
-        Console.WriteLine("║              Gmail Authentication Required                  ║");
-        Console.WriteLine("╠════════════════════════════════════════════════════════════╣");
-        Console.WriteLine($"║  1. Go to: {deviceCode.VerificationUrl,-45} ║");
-        Console.WriteLine($"║  2. Enter code: {deviceCode.UserCode,-40} ║");
-        Console.WriteLine("║  3. Grant access to your Gmail                             ║");
-        Console.WriteLine("╚════════════════════════════════════════════════════════════╝");
+        Console.WriteLine(GmailAuthMessages.BoxTop);
+        Console.WriteLine(GmailAuthMessages.BoxTitle);
+        Console.WriteLine(GmailAuthMessages.BoxSeparator);
+        Console.WriteLine(string.Format(GmailAuthMessages.BoxStep1, deviceCode.VerificationUrl));
+        Console.WriteLine(string.Format(GmailAuthMessages.BoxStep2, deviceCode.UserCode));
+        Console.WriteLine(GmailAuthMessages.BoxStep3);
+        Console.WriteLine(GmailAuthMessages.BoxBottom);
         Console.WriteLine();
 
         // Step 3: Poll for token
@@ -88,7 +89,7 @@ public class GoogleAuthService
         if (token is not null)
         {
             await SaveTokenAsync(token);
-            Console.WriteLine("[Gmail Auth] Authentication successful!");
+            Console.WriteLine(GmailAuthMessages.AuthenticationSuccessful);
         }
 
         return token;
@@ -106,7 +107,7 @@ public class GoogleAuthService
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"[Gmail Auth] Device code request failed: {error}");
+            Console.WriteLine(string.Format(GmailAuthMessages.DeviceCodeRequestFailed, error));
             return null;
         }
 
@@ -127,7 +128,7 @@ public class GoogleAuthService
                 ["client_id"] = _clientId,
                 ["client_secret"] = _clientSecret,
                 ["device_code"] = deviceCode.DeviceCode,
-                ["grant_type"] = "urn:ietf:params:oauth:grant-type:device_code"
+                ["grant_type"] = GoogleGrantTypes.DeviceCode
             });
 
             var response = await _httpClient.PostAsync(TokenUrl, content);
@@ -146,35 +147,35 @@ public class GoogleAuthService
 
             // Check for pending/slow_down errors
             var error = JsonSerializer.Deserialize<GoogleTokenError>(responseBody);
-            if (error?.Error == "authorization_pending")
+            if (error?.Error == GoogleOAuthErrors.AuthorizationPending)
             {
                 // User hasn't completed auth yet, keep polling
                 continue;
             }
-            else if (error?.Error == "slow_down")
+            else if (error?.Error == GoogleOAuthErrors.SlowDown)
             {
                 // Increase polling interval
                 pollInterval = pollInterval.Add(TimeSpan.FromSeconds(5));
                 continue;
             }
-            else if (error?.Error == "access_denied")
+            else if (error?.Error == GoogleOAuthErrors.AccessDenied)
             {
-                Console.WriteLine("[Gmail Auth] Access denied by user.");
+                Console.WriteLine(GmailAuthMessages.AccessDenied);
                 return null;
             }
-            else if (error?.Error == "expired_token")
+            else if (error?.Error == GoogleOAuthErrors.ExpiredToken)
             {
-                Console.WriteLine("[Gmail Auth] Device code expired. Please try again.");
+                Console.WriteLine(GmailAuthMessages.DeviceCodeExpired);
                 return null;
             }
             else
             {
-                Console.WriteLine($"[Gmail Auth] Token error: {error?.Error} - {error?.ErrorDescription}");
+                Console.WriteLine(string.Format(GmailAuthMessages.TokenError, error?.Error, error?.ErrorDescription));
                 return null;
             }
         }
 
-        Console.WriteLine("[Gmail Auth] Authentication timed out.");
+        Console.WriteLine(GmailAuthMessages.AuthenticationTimedOut);
         return null;
     }
 
@@ -185,13 +186,13 @@ public class GoogleAuthService
             ["client_id"] = _clientId,
             ["client_secret"] = _clientSecret,
             ["refresh_token"] = refreshToken,
-            ["grant_type"] = "refresh_token"
+            ["grant_type"] = GoogleGrantTypes.RefreshToken
         });
 
         var response = await _httpClient.PostAsync(TokenUrl, content);
         if (!response.IsSuccessStatusCode)
         {
-            Console.WriteLine("[Gmail Auth] Token refresh failed, re-authentication required.");
+            Console.WriteLine(GmailAuthMessages.TokenRefreshFailed);
             return null;
         }
 
@@ -217,7 +218,7 @@ public class GoogleAuthService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Gmail Auth] Failed to save token: {ex.Message}");
+            Console.WriteLine(string.Format(GmailAuthMessages.FailedToSaveToken, ex.Message));
         }
     }
 

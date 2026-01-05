@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using GoogleApiClient.Gmail;
-using GoogleApiClient.Models;
 using AgentFramework.Configuration;
 using Microsoft.Extensions.AI;
 
@@ -16,55 +15,26 @@ public static class GmailTool
         _settings.Clients.Gmail.ClientSecret);
     private static readonly IGmailService _gmailService = new GmailService(_httpClient, _authService);
 
-    public static async Task<EmailListResult> GetMail()
+    public static async Task<EmailSearchResult> GetMail()
     {
         var messages = await _gmailService.GetMailAsync(maxResults: 20);
-
-        return new EmailListResult(
-            Count: messages.Count,
-            Query: null,
-            Emails: messages.Select(msg => new EmailSummary(
-                Id: msg.Id,
-                From: msg.From,
-                Subject: msg.Subject,
-                Date: msg.Date,
-                Preview: msg.Snippet)).ToList());
+        return new EmailSearchResult(messages.Count, null, messages);
     }
 
-    public static async Task<EmailListResult> SearchMail(
+    public static async Task<EmailSearchResult> SearchMail(
         [Description("The Gmail search query")] string query)
     {
         var messages = await _gmailService.SearchMailAsync(query, maxResults: 20);
-
-        return new EmailListResult(
-            Count: messages.Count,
-            Query: query,
-            Emails: messages.Select(msg => new EmailSummary(
-                Id: msg.Id,
-                From: msg.From,
-                Subject: msg.Subject,
-                Date: msg.Date,
-                Preview: msg.Snippet)).ToList());
+        return new EmailSearchResult(messages.Count, query, messages);
     }
 
-    public static async Task<EmailDetailResult?> GetMailContents(
+    public static async Task<GmailMessageDetail?> GetMailContents(
         [Description("The Gmail message ID")] string messageId)
     {
         if (string.IsNullOrWhiteSpace(messageId))
             return null;
 
-        var message = await _gmailService.GetMailContentsAsync(messageId);
-        
-        if (message is null)
-            return null;
-
-        return new EmailDetailResult(
-            Id: message.Id,
-            From: message.From,
-            To: message.To,
-            Subject: message.Subject,
-            Date: message.Date,
-            Body: message.Body);
+        return await _gmailService.GetMailContentsAsync(messageId);
     }
 
     public static AIFunction CreateGetMail(string? description = null)

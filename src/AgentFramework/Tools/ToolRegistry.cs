@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.Extensions.AI;
 using AgentFramework.Configuration;
+using static AgentFramework.Constants;
 
 namespace AgentFramework.Tools;
 
@@ -76,7 +77,7 @@ public class ToolRegistry
             var type = Type.GetType(toolConfig.Class);
             if (type == null)
             {
-                Console.WriteLine($"Warning: Could not find type '{toolConfig.Class}' for tool '{toolConfig.Name}'");
+                Console.WriteLine(string.Format(ErrorMessages.TypeNotFound, toolConfig.Class, toolConfig.Name));
                 return null;
             }
 
@@ -100,12 +101,12 @@ public class ToolRegistry
                 return method.Invoke(null, null) as AITool;
             }
 
-            Console.WriteLine($"Warning: Could not find factory method '{toolConfig.FactoryMethod}' on type '{toolConfig.Class}' for tool '{toolConfig.Name}'");
+            Console.WriteLine(string.Format(ErrorMessages.FactoryMethodNotFound, toolConfig.FactoryMethod, toolConfig.Class, toolConfig.Name));
             return null;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error creating tool '{toolConfig.Name}': {ex.Message}");
+            Console.WriteLine(string.Format(ErrorMessages.ErrorCreatingTool, toolConfig.Name, ex.Message));
             return null;
         }
     }

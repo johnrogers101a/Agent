@@ -8,6 +8,7 @@ using Microsoft.Agents.AI.Hosting.OpenAI;
 using AgentFramework.Configuration;
 using AgentFramework.Core;
 using AgentFramework.Tools;
+using static AgentFramework.Constants;
 
 namespace AgentFramework.Extensions;
 
@@ -72,7 +73,7 @@ public static class AgentBuilderExtensions
             app.Urls.Add(url);
             
             var devUIUrl = $"{url}/devui";
-            Console.WriteLine($"DevUI available at: {devUIUrl}");
+            Console.WriteLine(string.Format(StartupMessages.DevUIAvailable, devUIUrl));
             
             // Open browser on startup
             app.Lifetime.ApplicationStarted.Register(() =>
@@ -88,12 +89,12 @@ public static class AgentBuilderExtensions
             var port = appSettings.Provider.DevUIPort > 0 ? appSettings.Provider.DevUIPort : 11435;
             app.Urls.Add($"http://localhost:{port}");
             
-            Console.WriteLine($"PersonalAgent Ollama-compatible API running at http://localhost:{port}");
-            Console.WriteLine("Available endpoints:");
-            Console.WriteLine("  POST /api/generate - Generate completion");
-            Console.WriteLine("  POST /api/chat     - Chat completion");
-            Console.WriteLine("  GET  /api/tags     - List models");
-            Console.WriteLine("  GET  /api/ps       - List running models");
+            Console.WriteLine(string.Format(StartupMessages.OllamaApiRunning, port));
+            Console.WriteLine(StartupMessages.AvailableEndpoints);
+            Console.WriteLine(StartupMessages.EndpointGenerate);
+            Console.WriteLine(StartupMessages.EndpointChat);
+            Console.WriteLine(StartupMessages.EndpointTags);
+            Console.WriteLine(StartupMessages.EndpointPs);
         }
         
         return app;

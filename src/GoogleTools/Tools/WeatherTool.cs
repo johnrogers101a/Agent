@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using GoogleApiClient.Weather;
 using GoogleApiClient.NominatimCityState;
-using GoogleApiClient.Models;
 using AgentFramework.Configuration;
 using Microsoft.Extensions.AI;
 
@@ -14,55 +13,33 @@ public static class WeatherTool
     private static readonly IWeatherService _weatherService = new WeatherService(_httpClient, _settings.Clients.GoogleWeather.ApiKey);
     private static readonly INominatimCityStateService _nominatimService = new NominatimCityStateService(_httpClient);
 
-    public static async Task<WeatherToolResult?> GetWeatherByZip(
+    public static async Task<LocationWeatherResult?> GetWeatherByZip(
         [Description("The US zip code to get weather for")] string zipCode)
     {
-        // Step 1: Get coordinates from zip code via Google Geocoding
         var location = await _weatherService.GetLocationByZipAsync(zipCode);
         if (location is null)
             return null;
 
-        // Step 2: Get weather for coordinates via Google Weather
         var weather = await _weatherService.GetWeatherAsync(location.Latitude, location.Longitude);
         if (weather is null)
             return null;
 
-        return new WeatherToolResult(
-            Location: zipCode,
-            Description: weather.Description,
-            Temperature: weather.Temperature,
-            FeelsLike: weather.FeelsLike,
-            TemperatureUnit: weather.TemperatureUnit,
-            Humidity: weather.Humidity,
-            WindSpeed: weather.WindSpeed,
-            WindDirection: weather.WindDirection,
-            UvIndex: weather.UvIndex);
+        return new LocationWeatherResult(zipCode, weather);
     }
 
-    public static async Task<WeatherToolResult?> GetWeatherByCityState(
+    public static async Task<LocationWeatherResult?> GetWeatherByCityState(
         [Description("The city name")] string city,
         [Description("The state name or abbreviation")] string state)
     {
-        // Step 1: Get coordinates from city/state via Nominatim
         var location = await _nominatimService.GetLocationAsync(city, state);
         if (location is null)
             return null;
 
-        // Step 2: Get weather for coordinates via Google Weather
         var weather = await _weatherService.GetWeatherAsync(location.Latitude, location.Longitude);
         if (weather is null)
             return null;
 
-        return new WeatherToolResult(
-            Location: $"{city}, {state}",
-            Description: weather.Description,
-            Temperature: weather.Temperature,
-            FeelsLike: weather.FeelsLike,
-            TemperatureUnit: weather.TemperatureUnit,
-            Humidity: weather.Humidity,
-            WindSpeed: weather.WindSpeed,
-            WindDirection: weather.WindDirection,
-            UvIndex: weather.UvIndex);
+        return new LocationWeatherResult($"{city}, {state}", weather);
     }
 
     public static AIFunction CreateGetWeatherByZip(string? description = null)

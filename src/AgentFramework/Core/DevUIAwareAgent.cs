@@ -1,18 +1,11 @@
-using System.Diagnostics;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Agents.AI;
-using Microsoft.Agents.AI.DevUI;
-using Microsoft.Agents.AI.Hosting;
-using Microsoft.Agents.AI.Hosting.OpenAI;
 using static AgentFramework.Configuration.AppSettings;
 
 namespace AgentFramework.Core;
 
 /// <summary>
-/// Wraps an AIAgent to provide DevUI support or console logging based on settings.
+/// Wraps an AIAgent with logging and settings context.
 /// </summary>
 public class DevUIAwareAgent
 {
@@ -35,68 +28,24 @@ public class DevUIAwareAgent
     /// </summary>
     public AIAgent Agent => _agent;
 
-    public async Task RunAsync(CancellationToken cancellationToken = default)
-    {
-        await RunAsync(string.Empty, cancellationToken);
-    }
+    /// <summary>
+    /// Gets the provider settings.
+    /// </summary>
+    public ProviderSettings Settings => _providerSettings;
 
-    public async Task RunAsync(string prompt, CancellationToken cancellationToken = default)
-    {
-        if (_providerSettings.DevUI)
-        {
-            await RunWithDevUIAsync(cancellationToken);
-        }
-        else
-        {
-            await RunConsoleAsync(prompt, cancellationToken);
-        }
-    }
-
-    private async Task RunConsoleAsync(string prompt, CancellationToken cancellationToken)
+    /// <summary>
+    /// Runs the agent with the given prompt and returns the response.
+    /// </summary>
+    public async Task<string?> RunAsync(string prompt, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Agent '{AgentName}' processing: {Prompt}", _agent.Name, prompt);
 
-        var response = await _agent.RunAsync(prompt, thread: null, options: null, cancellationToken: cancellationToken);
+        var result = await _agent.RunAsync(prompt, thread: null, options: null, cancellationToken: cancellationToken);
 
+        // AgentRunResponse can be converted to string
+        var response = result?.ToString();
         _logger.LogInformation("Agent '{AgentName}' response: {Response}", _agent.Name, response);
-    }
-
-    private async Task RunWithDevUIAsync(CancellationToken cancellationToken)
-    {
-        _logger.LogInformation("Starting DevUI for agent '{AgentName}' on port {Port}...", _agent.Name, _providerSettings.DevUIPort);
-
-        var builder = WebApplication.CreateBuilder();
         
-        // Configure logging
-        builder.Logging.ClearProviders();
-        builder.Logging.AddConsole();
-
-        // Register this agent with DevUI
-        builder.Services.AddSingleton(_agent);
-        builder.AddDevUI();
-        builder.AddOpenAIResponses();
-        builder.AddOpenAIConversations();
-
-        var app = builder.Build();
-        
-        app.MapOpenAIResponses();
-        app.MapOpenAIConversations();
-        app.MapDevUI();
-
-        var url = $"http://localhost:{_providerSettings.DevUIPort}";
-        app.Urls.Add(url);
-
-        await app.StartAsync(cancellationToken);
-
-        var devUIUrl = $"{url}/devui";
-        _logger.LogInformation("DevUI available at: {DevUIUrl}", devUIUrl);
-        
-        // Open browser
-        Process.Start(new ProcessStartInfo(devUIUrl) { UseShellExecute = true });
-
-        _logger.LogInformation("Press Ctrl+C to stop DevUI...");
-        
-        // Block until cancellation
-        await app.WaitForShutdownAsync(cancellationToken);
+        return response;
     }
 }
