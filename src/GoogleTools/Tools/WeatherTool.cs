@@ -14,7 +14,7 @@ public static class WeatherTool
     private static readonly INominatimCityStateService _nominatimService = new NominatimCityStateService(_httpClient);
 
     public static async Task<LocationWeatherResult?> GetWeatherByZip(
-        [Description("The US zip code to get weather for")] string zipCode)
+        [Description("US zip code")] string zipCode)
     {
         var location = await _weatherService.GetLocationByZipAsync(zipCode);
         if (location is null)
@@ -28,8 +28,8 @@ public static class WeatherTool
     }
 
     public static async Task<LocationWeatherResult?> GetWeatherByCityState(
-        [Description("The city name")] string city,
-        [Description("The state name or abbreviation")] string state)
+        [Description("City name")] string city,
+        [Description("State name or abbreviation")] string state)
     {
         var location = await _nominatimService.GetLocationAsync(city, state);
         if (location is null)
@@ -42,19 +42,19 @@ public static class WeatherTool
         return new LocationWeatherResult($"{city}, {state}", weather);
     }
 
-    public static AIFunction CreateGetWeatherByZip(string? description = null)
+    public static AIFunction CreateGetWeatherByZip(string description)
     {
         return AIFunctionFactory.Create(
             GetWeatherByZip,
             name: "GetWeatherByZip",
-            description: description ?? "Gets the current weather for a US zip code");
+            description: description);
     }
 
-    public static AIFunction CreateGetWeatherByCityState(string? description = null)
+    public static AIFunction CreateGetWeatherByCityState(string description)
     {
         return AIFunctionFactory.Create(
             GetWeatherByCityState,
             name: "GetWeatherByCityState",
-            description: description ?? "Gets the current weather for a US city and state");
+            description: description);
     }
 }

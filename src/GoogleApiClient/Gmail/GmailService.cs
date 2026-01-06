@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using static GoogleApiClient.Constants;
 
 namespace GoogleApiClient.Gmail;
@@ -9,13 +10,15 @@ public class GmailService : IGmailService
 {
     private readonly HttpClient _httpClient;
     private readonly GoogleAuthService _authService;
+    private readonly ILogger<GmailService> _logger;
 
     private const string BaseUrl = "https://gmail.googleapis.com/gmail/v1/users/me";
 
-    public GmailService(HttpClient httpClient, GoogleAuthService authService)
+    public GmailService(HttpClient httpClient, GoogleAuthService authService, ILogger<GmailService> logger)
     {
         _httpClient = httpClient;
         _authService = authService;
+        _logger = logger;
     }
 
     public async Task<List<GmailMessage>> GetMailAsync(int maxResults = 20)
@@ -44,7 +47,7 @@ public class GmailService : IGmailService
         var accessToken = await _authService.GetAccessTokenAsync();
         if (string.IsNullOrEmpty(accessToken))
         {
-            Console.WriteLine(GmailApiMessages.AuthenticationRequired);
+            _logger.LogWarning(GmailApiMessages.AuthenticationRequired);
             return messages;
         }
 
@@ -61,7 +64,7 @@ public class GmailService : IGmailService
         if (!response.IsSuccessStatusCode)
         {
             var errorBody = await response.Content.ReadAsStringAsync();
-            Console.WriteLine(string.Format(GmailApiMessages.ApiError, response.StatusCode, errorBody));
+            _logger.LogError(GmailApiMessages.ApiError, response.StatusCode, errorBody);
             return messages;
         }
 

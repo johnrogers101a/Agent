@@ -1,0 +1,1 @@
+Gets the current weather for a US zip code. Returns temperature, humidity, wind speed, and conditions for the specified location.

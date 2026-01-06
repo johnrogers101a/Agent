@@ -73,6 +73,11 @@ public static class Constants
         public const string TypeNotFound = "Warning: Could not find type '{0}' for tool '{1}'";
         public const string FactoryMethodNotFound = "Warning: Could not find factory method '{0}' on type '{1}' for tool '{2}'";
         public const string ErrorCreatingTool = "Error creating tool '{0}': {1}";
+        public const string ToolBaseDescriptionMissing = "Tool '{0}': BaseDescription is required but not specified in configuration";
+        public const string ToolBaseDescriptionFileNotFound = "Tool '{0}': Base description file not found: {1}";
+        public const string ToolDescriptionFileNotFound = "Tool '{0}': Description file not found: {1}";
+        public const string ToolDescriptionFileUnreadable = "Tool '{0}': Cannot read description file '{1}': {2}";
+        public const string ToolDescriptionValidationFailed = "Tool description validation failed:\n{0}";
     }
 
     /// <summary>

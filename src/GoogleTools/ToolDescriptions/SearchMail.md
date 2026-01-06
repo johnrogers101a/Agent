@@ -1,0 +1,1 @@
+Searches emails using Gmail search syntax. Supports queries like "from:sender@example.com", "subject:keyword", "is:unread", and date ranges. Use subject-based searches for finding documents by topic.

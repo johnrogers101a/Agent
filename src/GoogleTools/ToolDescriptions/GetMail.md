@@ -1,0 +1,1 @@
+Gets the latest 20 emails from the user's Gmail inbox. Returns a list of email summaries including sender, subject, and date.

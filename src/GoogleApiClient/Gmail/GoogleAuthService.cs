@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using static GoogleApiClient.Constants;
 
 namespace GoogleApiClient.Gmail;
@@ -17,6 +18,7 @@ public class GoogleAuthService
     private readonly string _clientId;
     private readonly string _clientSecret;
     private readonly string _tokenFilePath;
+    private readonly ILogger<GoogleAuthService> _logger;
 
     private const string AuthorizationUrl = "https://accounts.google.com/o/oauth2/v2/auth";
     private const string TokenUrl = "https://oauth2.googleapis.com/token";
@@ -26,11 +28,12 @@ public class GoogleAuthService
 
     private GoogleTokenResponse? _cachedToken;
 
-    public GoogleAuthService(HttpClient httpClient, string clientId, string clientSecret, string tokenFilePath = "gmail_tokens.json")
+    public GoogleAuthService(HttpClient httpClient, string clientId, string clientSecret, ILogger<GoogleAuthService> logger, string tokenFilePath = "gmail_tokens.json")
     {
         _httpClient = httpClient;
         _clientId = clientId;
         _clientSecret = clientSecret;
+        _logger = logger;
         _tokenFilePath = tokenFilePath;
     }
 
@@ -79,14 +82,7 @@ public class GoogleAuthService
         // Build authorization URL
         var authUrl = BuildAuthorizationUrl(codeChallenge, state);
 
-        Console.WriteLine();
-        Console.WriteLine("╔════════════════════════════════════════════════════════════╗");
-        Console.WriteLine("║           Gmail Authentication Required                     ║");
-        Console.WriteLine("╠════════════════════════════════════════════════════════════╣");
-        Console.WriteLine("║  A browser window will open for Google sign-in.            ║");
-        Console.WriteLine("║  Please complete the authentication in your browser.       ║");
-        Console.WriteLine("╚════════════════════════════════════════════════════════════╝");
-        Console.WriteLine();
+        _logger.LogInformation("Gmail Authentication Required - A browser window will open for Google sign-in");
 
         // Start local HTTP listener for callback
         string? authorizationCode = null;
@@ -98,7 +94,7 @@ public class GoogleAuthService
         try
         {
             listener.Start();
-            Console.WriteLine($"[Gmail Auth] Listening for callback on port {CallbackPort}...");
+            _logger.LogDebug("Listening for callback on port {Port}...", CallbackPort);
 
             // Open browser
             OpenBrowser(authUrl);
@@ -111,7 +107,7 @@ public class GoogleAuthService
             
             if (completedTask == timeoutTask)
             {
-                Console.WriteLine("[Gmail Auth] Authentication timed out.");
+                _logger.LogWarning("Authentication timed out");
                 return null;
             }
 
@@ -125,13 +121,13 @@ public class GoogleAuthService
         // Validate state
         if (returnedState != state)
         {
-            Console.WriteLine("[Gmail Auth] State mismatch - possible CSRF attack.");
+            _logger.LogError("State mismatch - possible CSRF attack");
             return null;
         }
 
         if (string.IsNullOrEmpty(authorizationCode))
         {
-            Console.WriteLine("[Gmail Auth] No authorization code received.");
+            _logger.LogWarning("No authorization code received");
             return null;
         }
 
@@ -140,7 +136,7 @@ public class GoogleAuthService
         if (token is not null)
         {
             await SaveTokenAsync(token);
-            Console.WriteLine("[Gmail Auth] Authentication successful!");
+            _logger.LogInformation("Authentication successful!");
         }
 
         return token;
@@ -188,7 +184,7 @@ public class GoogleAuthService
     <p>You can close this window.</p>
 </body>
 </html>";
-            Console.WriteLine($"[Gmail Auth] Authentication error: {error}");
+            _logger.LogError("Authentication error: {Error}", error);
         }
         else if (!string.IsNullOrEmpty(code))
         {
@@ -241,7 +237,7 @@ public class GoogleAuthService
 
         if (!response.IsSuccessStatusCode)
         {
-            Console.WriteLine($"[Gmail Auth] Token exchange failed: {responseBody}");
+            _logger.LogError("Token exchange failed: {ResponseBody}", responseBody);
             return null;
         }
 
@@ -268,7 +264,7 @@ public class GoogleAuthService
         var response = await _httpClient.PostAsync(TokenUrl, content);
         if (!response.IsSuccessStatusCode)
         {
-            Console.WriteLine(GmailAuthMessages.TokenRefreshFailed);
+            _logger.LogWarning(GmailAuthMessages.TokenRefreshFailed);
             return null;
         }
 
@@ -316,7 +312,7 @@ public class GoogleAuthService
             .Replace('/', '_');
     }
 
-    private static void OpenBrowser(string url)
+    private void OpenBrowser(string url)
     {
         try
         {
@@ -328,7 +324,7 @@ public class GoogleAuthService
         }
         catch
         {
-            Console.WriteLine($"[Gmail Auth] Please open this URL manually: {url}");
+            _logger.LogWarning("Please open this URL manually: {Url}", url);
         }
     }
 
@@ -341,7 +337,7 @@ public class GoogleAuthService
         }
         catch (Exception ex)
         {
-            Console.WriteLine(string.Format(GmailAuthMessages.FailedToSaveToken, ex.Message));
+            _logger.LogError(GmailAuthMessages.FailedToSaveToken, ex.Message);
         }
     }
 

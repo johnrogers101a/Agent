@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.DevUI;
 using Microsoft.Agents.AI.Hosting;
@@ -27,10 +28,18 @@ public static class AgentBuilderExtensions
     /// </summary>
     public static WebApplicationBuilder ConfigureAgent(this WebApplicationBuilder builder, string configFileName)
     {
+        // Build a temporary service provider to get loggers for startup
+        var tempServices = new ServiceCollection();
+        tempServices.AddLogging(config => config.AddConsole());
+        using var tempProvider = tempServices.BuildServiceProvider();
+        var loggerFactory = tempProvider.GetRequiredService<ILoggerFactory>();
+        
         var appSettings = AppSettings.LoadConfiguration(configFileName);
         
         // Build tool registry using reflection from configuration
-        var toolRegistry = new ToolRegistry();
+        var toolRegistryLogger = loggerFactory.CreateLogger<ToolRegistry>();
+        var descriptionLoaderLogger = loggerFactory.CreateLogger<ToolDescriptionLoader>();
+        var toolRegistry = new ToolRegistry(toolRegistryLogger, descriptionLoaderLogger, loggerFactory);
         toolRegistry.LoadFromConfiguration(appSettings);
         
         // Create agents
@@ -61,6 +70,7 @@ public static class AgentBuilderExtensions
     {
         var appSettings = app.Services.GetRequiredService<AppSettings>();
         var agents = app.Services.GetRequiredService<Dictionary<string, DevUIAwareAgent>>();
+        var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("AgentFramework.Startup");
         
         if (appSettings.Provider.DevUI)
         {
@@ -73,7 +83,7 @@ public static class AgentBuilderExtensions
             app.Urls.Add(url);
             
             var devUIUrl = $"{url}/devui";
-            Console.WriteLine(string.Format(StartupMessages.DevUIAvailable, devUIUrl));
+            logger.LogInformation(StartupMessages.DevUIAvailable, devUIUrl);
             
             // Open browser on startup
             app.Lifetime.ApplicationStarted.Register(() =>
@@ -89,12 +99,12 @@ public static class AgentBuilderExtensions
             var port = appSettings.Provider.DevUIPort > 0 ? appSettings.Provider.DevUIPort : 11435;
             app.Urls.Add($"http://localhost:{port}");
             
-            Console.WriteLine(string.Format(StartupMessages.OllamaApiRunning, port));
-            Console.WriteLine(StartupMessages.AvailableEndpoints);
-            Console.WriteLine(StartupMessages.EndpointGenerate);
-            Console.WriteLine(StartupMessages.EndpointChat);
-            Console.WriteLine(StartupMessages.EndpointTags);
-            Console.WriteLine(StartupMessages.EndpointPs);
+            logger.LogInformation(StartupMessages.OllamaApiRunning, port);
+            logger.LogInformation(StartupMessages.AvailableEndpoints);
+            logger.LogInformation(StartupMessages.EndpointGenerate);
+            logger.LogInformation(StartupMessages.EndpointChat);
+            logger.LogInformation(StartupMessages.EndpointTags);
+            logger.LogInformation(StartupMessages.EndpointPs);
         }
         
         return app;

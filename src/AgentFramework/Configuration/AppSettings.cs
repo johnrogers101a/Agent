@@ -7,7 +7,6 @@ public class AppSettings
 {
     public ProviderSettings Provider { get; set; } = new();
     public ClientsSettings Clients { get; set; } = new();
-    public string ToolsFolder { get; set; } = "Tools/";
     public List<ToolSettings> Tools { get; set; } = [];
     public List<AgentSettings> Agents { get; set; } = [];
 
@@ -58,6 +57,8 @@ public class AppSettings
         public string Name { get; set; } = string.Empty;
         public string Class { get; set; } = string.Empty;
         public string FactoryMethod { get; set; } = string.Empty;
+        public string BaseDescription { get; set; } = string.Empty;
+        public string? Description { get; set; }
     }
 
     public class AgentSettings
