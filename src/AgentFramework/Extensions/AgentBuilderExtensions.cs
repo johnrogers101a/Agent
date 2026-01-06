@@ -6,6 +6,8 @@ using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.DevUI;
 using Microsoft.Agents.AI.Hosting;
 using Microsoft.Agents.AI.Hosting.OpenAI;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
 using AgentFramework.Configuration;
 using AgentFramework.Core;
 using AgentFramework.Tools;
@@ -50,9 +52,19 @@ public static class AgentBuilderExtensions
         builder.Services.AddSingleton(agents);
         builder.Services.AddSingleton(toolRegistry);
         
-        // If DevUI mode, add DevUI services
+        // If DevUI mode, add DevUI services and enable instrumentation/tracing
         if (appSettings.Provider.DevUI)
         {
+            // Enable DevUI tracing via environment variable
+            Environment.SetEnvironmentVariable("ENABLE_INSTRUMENTATION", "true");
+            
+            // Set up OpenTelemetry tracing to console
+            Sdk.CreateTracerProviderBuilder()
+                .AddSource("*Microsoft.Agents.AI")
+                .AddSource("Microsoft.Agents.AI")
+                .AddConsoleExporter()
+                .Build();
+            
             var agent = agents.Values.First();
             builder.Services.AddSingleton(agent.Agent);
             builder.AddDevUI();

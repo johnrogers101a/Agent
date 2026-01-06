@@ -17,6 +17,8 @@
     <PackageReference Include="Microsoft.Agents.AI.Hosting.OpenAI" Version="1.0.0-alpha.251219.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.0" NoWarn="NU1510" />
     <PackageReference Include="OllamaSharp" Version="5.4.12" />
+    <PackageReference Include="OpenTelemetry" Version="1.14.0" />
+    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.14.0" />
   </ItemGroup>
 
 </Project>
