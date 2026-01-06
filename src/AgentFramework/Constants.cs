@@ -34,6 +34,8 @@ public static class Constants
         public const string ChatRoute = "/api/chat";
         public const string TagsRoute = "/api/tags";
         public const string PsRoute = "/api/ps";
+        public const string ResetRoute = "/api/reset";
+        public const string ShowRoute = "/api/show";
 
         // Content types
         public const string NdjsonContentType = "application/x-ndjson";
@@ -85,5 +87,7 @@ public static class Constants
         public const string EndpointChat = "  POST /api/chat     - Chat completion";
         public const string EndpointTags = "  GET  /api/tags     - List models";
         public const string EndpointPs = "  GET  /api/ps       - List running models";
+        public const string EndpointReset = "  POST /api/reset    - Reset conversation memory";
+        public const string EndpointShow = "  POST /api/show     - Show model info";
     }
 }

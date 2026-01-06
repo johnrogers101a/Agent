@@ -215,3 +215,53 @@ public class RunningModel
     [JsonPropertyName("size_vram")]
     public long SizeVram { get; set; }
 }
+
+// Reset request/response
+public class ResetRequest
+{
+    [JsonPropertyName("model")]
+    public string Model { get; set; } = string.Empty;
+
+    [JsonPropertyName("preserve_summary")]
+    public bool PreserveSummary { get; set; } = true;
+}
+
+public class ResetResponse
+{
+    [JsonPropertyName("status")]
+    public string Status { get; set; } = string.Empty;
+
+    [JsonPropertyName("model")]
+    public string Model { get; set; } = string.Empty;
+
+    [JsonPropertyName("message")]
+    public string? Message { get; set; }
+}
+
+// Show model info request/response
+public class ShowRequest
+{
+    [JsonPropertyName("model")]
+    public string Model { get; set; } = string.Empty;
+
+    [JsonPropertyName("verbose")]
+    public bool Verbose { get; set; }
+}
+
+public class ShowResponse
+{
+    [JsonPropertyName("modelfile")]
+    public string Modelfile { get; set; } = string.Empty;
+
+    [JsonPropertyName("parameters")]
+    public string Parameters { get; set; } = string.Empty;
+
+    [JsonPropertyName("template")]
+    public string Template { get; set; } = string.Empty;
+
+    [JsonPropertyName("details")]
+    public ModelDetails Details { get; set; } = new();
+
+    [JsonPropertyName("model_info")]
+    public Dictionary<string, object> ModelInfo { get; set; } = [];
+}

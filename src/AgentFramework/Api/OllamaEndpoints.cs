@@ -24,6 +24,8 @@ public static class OllamaEndpoints
         app.MapPost("/api/chat", HandleChat);
         app.MapGet("/api/tags", HandleTags);
         app.MapGet("/api/ps", HandlePs);
+        app.MapPost("/api/reset", HandleReset);
+        app.MapPost("/api/show", HandleShow);
     }
 
     private static async Task HandleGenerate(HttpContext context, [FromBody] GenerateRequest request)
@@ -309,5 +311,83 @@ public static class OllamaEndpoints
         var bytes = Encoding.UTF8.GetBytes(name);
         var hash = System.Security.Cryptography.SHA256.HashData(bytes);
         return $"sha256:{Convert.ToHexString(hash).ToLowerInvariant()[..12]}";
+    }
+
+    private static async Task HandleReset(HttpContext context, [FromBody] ResetRequest request)
+    {
+        var agent = GetAgent(request.Model);
+        if (agent is null)
+        {
+            context.Response.StatusCode = 404;
+            await context.Response.WriteAsJsonAsync(new ResetResponse
+            {
+                Status = "error",
+                Model = request.Model,
+                Message = $"Model '{request.Model}' not found"
+            });
+            return;
+        }
+
+        try
+        {
+            await agent.ResetConversationAsync(request.PreserveSummary);
+            await context.Response.WriteAsJsonAsync(new ResetResponse
+            {
+                Status = "success",
+                Model = request.Model,
+                Message = request.PreserveSummary 
+                    ? "Conversation reset with summary preserved" 
+                    : "Conversation cleared completely"
+            });
+        }
+        catch (Exception ex)
+        {
+            context.Response.StatusCode = 500;
+            await context.Response.WriteAsJsonAsync(new ResetResponse
+            {
+                Status = "error",
+                Model = request.Model,
+                Message = $"Error resetting conversation: {ex.Message}"
+            });
+        }
+    }
+
+    private static async Task HandleShow(HttpContext context, [FromBody] ShowRequest request)
+    {
+        var agent = GetAgent(request.Model);
+        if (agent is null)
+        {
+            context.Response.StatusCode = 404;
+            await context.Response.WriteAsJsonAsync(new { error = $"Model '{request.Model}' not found" });
+            return;
+        }
+
+        // Build model_info with context_length from memory if available
+        var modelInfo = new Dictionary<string, object>
+        {
+            ["general.architecture"] = "agent"
+        };
+
+        if (agent.Memory is not null)
+        {
+            modelInfo["agent.context_length"] = agent.Memory.ContextLength;
+            modelInfo["agent.history_count"] = agent.Memory.History.Count;
+            modelInfo["agent.user_message_count"] = agent.Memory.UserMessageCount;
+        }
+
+        await context.Response.WriteAsJsonAsync(new ShowResponse
+        {
+            Modelfile = $"FROM {request.Model}",
+            Parameters = string.Empty,
+            Template = string.Empty,
+            Details = new ModelDetails
+            {
+                Format = "gguf",
+                Family = "agent",
+                ParameterSize = "N/A",
+                QuantizationLevel = "N/A"
+            },
+            ModelInfo = modelInfo
+        });
     }
 }
