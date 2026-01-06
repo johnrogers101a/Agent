@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.Extensions.Configuration;
 
 namespace AgentFramework.Configuration;
@@ -12,10 +13,17 @@ public class AppSettings
 
     public static AppSettings LoadConfiguration(string fileName = "appsettings.json")
     {
-        return new ConfigurationBuilder()
-            .AddJsonFile(fileName)
-            .Build()
-            .Get<AppSettings>()!;
+        var builder = new ConfigurationBuilder()
+            .AddJsonFile(fileName);
+
+        // Try to load user secrets from the entry assembly (the main app)
+        var entryAssembly = Assembly.GetEntryAssembly();
+        if (entryAssembly != null)
+        {
+            builder.AddUserSecrets(entryAssembly, optional: true);
+        }
+
+        return builder.Build().Get<AppSettings>()!;
     }
 
     public class ProviderSettings
