@@ -61,7 +61,7 @@ public class GetWeatherByZip
             _logger.LogTrace("GetWeatherByZip geocoded to Lat={Lat}, Lng={Lng}", lat, lng);
 
             // Get weather
-            var weatherUrl = $"{Urls.GoogleWeatherCurrent}?location.latitude={lat}&location.longitude={lng}&key={_apiKey}";
+            var weatherUrl = $"{Urls.GoogleWeatherCurrent}?location.latitude={lat}&location.longitude={lng}&unitsSystem={Defaults.UnitsSystem}&key={_apiKey}";
             _logger.LogTrace("GetWeatherByZip fetching weather from {Url}", weatherUrl);
 
             var w = await _http.GetFromJsonAsync<JsonElement>(weatherUrl);

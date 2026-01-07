@@ -64,7 +64,7 @@ public class GetDailyForecastByCityState
             _logger.LogTrace("GetDailyForecastByCityState geocoded to Lat={Lat}, Lng={Lng}", lat, lng);
 
             // Get forecast
-            var forecastUrl = $"{Urls.GoogleWeatherDaily}?location.latitude={lat}&location.longitude={lng}&days={days}&key={_apiKey}";
+            var forecastUrl = $"{Urls.GoogleWeatherDaily}?location.latitude={lat}&location.longitude={lng}&days={days}&unitsSystem={Defaults.UnitsSystem}&key={_apiKey}";
             _logger.LogTrace("GetDailyForecastByCityState fetching forecast from {Url}", forecastUrl);
 
             var forecast = await _http.GetFromJsonAsync<JsonElement>(forecastUrl);

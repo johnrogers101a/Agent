@@ -63,7 +63,7 @@ public class GetHourlyForecastByZip
             _logger.LogTrace("GetHourlyForecastByZip geocoded to Lat={Lat}, Lng={Lng}", lat, lng);
 
             // Get forecast
-            var forecastUrl = $"{Urls.GoogleWeatherHourly}?location.latitude={lat}&location.longitude={lng}&hours={hours}&key={_apiKey}";
+            var forecastUrl = $"{Urls.GoogleWeatherHourly}?location.latitude={lat}&location.longitude={lng}&hours={hours}&unitsSystem={Defaults.UnitsSystem}&key={_apiKey}";
             _logger.LogTrace("GetHourlyForecastByZip fetching forecast from {Url}", forecastUrl);
 
             var forecast = await _http.GetFromJsonAsync<JsonElement>(forecastUrl);

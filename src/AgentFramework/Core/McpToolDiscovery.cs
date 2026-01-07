@@ -1,10 +1,9 @@
 #nullable enable
 
-using System.Reflection;
-using System.Xml.Linq;
 using AgentFramework.Attributes;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
+using System.Xml.Linq;
 
 namespace AgentFramework.Core;
 
@@ -333,6 +332,12 @@ public static class McpToolDiscovery
         else
         {
             var instance = tool.Instance ?? CreateInstance(tool.DeclaringType, serviceProvider);
+            if (instance is null)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot create instance of tool '{tool.Name}' (type: {tool.DeclaringType.FullName}). " +
+                    $"Ensure all constructor dependencies are registered in DI or use a static method.");
+            }
             return AIFunctionFactory.Create(tool.Method, target: instance, options);
         }
     }

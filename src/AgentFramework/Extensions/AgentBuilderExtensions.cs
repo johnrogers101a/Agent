@@ -1,15 +1,12 @@
-using System.Diagnostics;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Agents.AI;
-using Microsoft.Agents.AI.DevUI;
-using Microsoft.Agents.AI.Hosting;
-using Microsoft.Agents.AI.Hosting.OpenAI;
-using OpenTelemetry;
-using OpenTelemetry.Trace;
 using AgentFramework.Configuration;
 using AgentFramework.Core;
+using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.DevUI;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using static AgentFramework.Constants;
 
 namespace AgentFramework.Extensions;
@@ -38,14 +35,20 @@ public static class AgentBuilderExtensions
         
         var appSettings = AppSettings.LoadConfiguration(configFileName);
         
-        // Discover tools from loaded assemblies (triggered by referencing tool assemblies)
+        // Load all assemblies from the app directory to ensure tool assemblies are available
+        LoadToolAssemblies(logger);
+        
+        // Discover tools from loaded assemblies
         logger.LogInformation("Discovering MCP tools from loaded assemblies...");
         var discoveredTools = McpToolDiscovery.DiscoverAllTools();
         logger.LogInformation("Discovered {Count} tools: {Tools}", discoveredTools.Count, string.Join(", ", discoveredTools.Keys));
         
-        // Register settings - agents will be created in UseAgents after DI is available
+        // Register settings and HttpClient
         builder.Services.AddSingleton(appSettings);
         builder.Services.AddHttpClient();
+        
+        // Auto-register tool dependencies based on discovered tools
+        RegisterToolDependencies(builder.Services, appSettings, discoveredTools);
         
         // If DevUI mode, add DevUI services and enable instrumentation/tracing
         if (appSettings.Provider.DevUI)
@@ -60,12 +63,107 @@ public static class AgentBuilderExtensions
                 .AddConsoleExporter()
                 .Build();
             
+            // Register AIAgent as a factory - DevUI will resolve this
+            builder.Services.AddSingleton<AIAgent>(sp =>
+            {
+                var settings = sp.GetRequiredService<AppSettings>();
+                var agents = AgentFactory.Load(settings, sp);
+                return agents.Values.First().Agent;
+            });
+            
             builder.AddDevUI();
             builder.AddOpenAIResponses();
             builder.AddOpenAIConversations();
         }
         
         return builder;
+    }
+    
+    /// <summary>
+    /// Loads all assemblies from the application directory that might contain tools.
+    /// </summary>
+    private static void LoadToolAssemblies(ILogger logger)
+    {
+        var basePath = AppContext.BaseDirectory;
+        var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies()
+            .Where(a => !a.IsDynamic)
+            .Select(a => a.GetName().Name)
+            .ToHashSet();
+        
+        foreach (var dll in Directory.GetFiles(basePath, "*.dll"))
+        {
+            var assemblyName = Path.GetFileNameWithoutExtension(dll);
+            
+            // Skip already loaded and system assemblies
+            if (loadedAssemblies.Contains(assemblyName) ||
+                assemblyName.StartsWith("System") ||
+                assemblyName.StartsWith("Microsoft") ||
+                assemblyName.StartsWith("netstandard") ||
+                assemblyName.StartsWith("mscorlib"))
+                continue;
+            
+            try
+            {
+                var assembly = Assembly.LoadFrom(dll);
+                // Force the assembly to initialize by running the class constructor of any type
+                var anyType = assembly.GetTypes().FirstOrDefault();
+                if (anyType != null)
+                {
+                    RuntimeHelpers.RunClassConstructor(anyType.TypeHandle);
+                }
+                logger.LogDebug("Loaded assembly: {Assembly}", assemblyName);
+            }
+            catch
+            {
+                // Ignore assemblies that can't be loaded
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Registers services that tools depend on based on constructor parameters.
+    /// </summary>
+    private static void RegisterToolDependencies(IServiceCollection services, AppSettings appSettings, Dictionary<string, DiscoveredTool> tools)
+    {
+        var registeredTypes = new HashSet<Type>();
+        
+        foreach (var tool in tools.Values)
+        {
+            var ctors = tool.DeclaringType.GetConstructors();
+            foreach (var ctor in ctors)
+            {
+                foreach (var param in ctor.GetParameters())
+                {
+                    var paramType = param.ParameterType;
+                    
+                    // Skip types that are already registered or built-in
+                    if (registeredTypes.Contains(paramType) ||
+                        paramType == typeof(HttpClient) ||
+                        paramType == typeof(IHttpClientFactory) ||
+                        paramType == typeof(IConfiguration) ||
+                        paramType.Namespace?.StartsWith("Microsoft.Extensions") == true)
+                        continue;
+                    
+                    // Register Gmail.AuthService if a tool depends on it
+                    if (paramType.FullName == "Gmail.AuthService")
+                    {
+                        // Register HttpClient for AuthService
+                        services.AddSingleton(paramType, sp =>
+                        {
+                            var http = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
+                            var settings = sp.GetRequiredService<AppSettings>();
+                            var clientId = settings.Clients.Gmail.ClientId;
+                            var clientSecret = settings.Clients.Gmail.ClientSecret;
+                            
+                            // Use reflection to invoke the constructor with named parameters
+                            var ctorInfo = paramType.GetConstructors().First();
+                            return ctorInfo.Invoke([http, clientId, clientSecret, "gmail_tokens.json"]);
+                        });
+                        registeredTypes.Add(paramType);
+                    }
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -76,15 +174,9 @@ public static class AgentBuilderExtensions
         var appSettings = app.Services.GetRequiredService<AppSettings>();
         var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("AgentFramework.Startup");
         
-        // Create agents now that DI is available
-        var agents = AgentFactory.Load(appSettings, app.Services);
-        
         if (appSettings.Provider.DevUI)
         {
-            // Register the first agent for DevUI
-            var agent = agents.Values.First();
-            
-            // DevUI mode - configure DevUI endpoints
+            // DevUI mode - agents are created via DI factory, just configure endpoints
             app.MapOpenAIResponses();
             app.MapOpenAIConversations();
             app.MapDevUI();
@@ -103,7 +195,8 @@ public static class AgentBuilderExtensions
         }
         else
         {
-            // API mode - map Ollama-compatible endpoints
+            // API mode - create agents and map Ollama-compatible endpoints
+            var agents = AgentFactory.Load(appSettings, app.Services);
             app.MapOllamaEndpoints(agents, appSettings);
             
             var port = appSettings.Provider.DevUIPort > 0 ? appSettings.Provider.DevUIPort : 11435;

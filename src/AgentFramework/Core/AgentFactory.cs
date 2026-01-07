@@ -1,9 +1,7 @@
-using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Logging;
 using AgentFramework.Api;
 using AgentFramework.Configuration;
 using AgentFramework.Infrastructure;
+using Microsoft.Extensions.AI;
 
 namespace AgentFramework.Core;
 

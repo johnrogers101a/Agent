@@ -19,6 +19,7 @@ internal static class ConfigKeys
 internal static class Defaults
 {
     public const string UserAgent = "AgentFramework/1.0";
+    public const string UnitsSystem = "IMPERIAL";
 }
 
 internal static class Errors

@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Microsoft.Agents.AI;
 using static AgentFramework.Configuration.AppSettings;
 
