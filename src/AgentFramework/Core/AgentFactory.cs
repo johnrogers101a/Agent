@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using AgentFramework.Api;
 using AgentFramework.Configuration;
 using AgentFramework.Infrastructure;
-using AgentFramework.Tools;
 
 namespace AgentFramework.Core;
 
@@ -13,7 +12,7 @@ public static class AgentFactory
     private static readonly InstructionsLoader _instructionsLoader = new();
     private static ILoggerFactory? _loggerFactory;
 
-    public static Dictionary<string, DevUIAwareAgent> Load(AppSettings appSettings, ToolRegistry toolRegistry)
+    public static Dictionary<string, DevUIAwareAgent> Load(AppSettings appSettings, IServiceProvider serviceProvider)
     {
         // Set up logging
         _loggerFactory = LoggerFactory.Create(builder =>
@@ -21,6 +20,11 @@ public static class AgentFactory
             builder.AddConsole();
             builder.SetMinimumLevel(LogLevel.Information);
         });
+
+        // Discover all available tools from loaded assemblies
+        var allTools = McpToolDiscovery.DiscoverAllTools();
+        var logger = _loggerFactory.CreateLogger("AgentFramework.AgentFactory");
+        logger.LogInformation("Discovered {Count} tools: {Tools}", allTools.Count, string.Join(", ", allTools.Keys));
 
         var provider = ChatClientProviderFactory.GetProvider(appSettings.Provider.Type);
         var baseChatClient = provider.CreateClient(appSettings.Provider);
@@ -37,13 +41,20 @@ public static class AgentFactory
             // Wrap the chat client with memory support
             var memoryChatClient = new MemoryDelegatingChatClient(baseChatClient, memory);
 
+            // Get tools for this agent using McpToolDiscovery with DI support
+            var tools = McpToolDiscovery.CreateToolsForAgent(
+                a.Tools,
+                a.ToolDescriptions,
+                basePath: Path.GetDirectoryName(Path.GetFullPath("appsettings.json")),
+                serviceProvider: serviceProvider);
+
             var aiAgent = memoryChatClient.CreateAIAgent(
                 instructions: _instructionsLoader.Load(a.InstructionsFileName),
                 name: a.Name,
-                tools: toolRegistry.GetTools(a.Tools));
+                tools: tools.Cast<AITool>().ToList());
 
-            var logger = _loggerFactory.CreateLogger(a.Name);
-            agents[a.Name] = new DevUIAwareAgent(aiAgent, memory, appSettings.Provider, logger);
+            var agentLogger = _loggerFactory.CreateLogger(a.Name);
+            agents[a.Name] = new DevUIAwareAgent(aiAgent, memory, appSettings.Provider, agentLogger);
         }
         return agents;
     }

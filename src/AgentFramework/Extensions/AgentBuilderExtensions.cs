@@ -10,7 +10,6 @@ using OpenTelemetry;
 using OpenTelemetry.Trace;
 using AgentFramework.Configuration;
 using AgentFramework.Core;
-using AgentFramework.Tools;
 using static AgentFramework.Constants;
 
 namespace AgentFramework.Extensions;
@@ -35,22 +34,18 @@ public static class AgentBuilderExtensions
         tempServices.AddLogging(config => config.AddConsole());
         using var tempProvider = tempServices.BuildServiceProvider();
         var loggerFactory = tempProvider.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger("AgentFramework.Startup");
         
         var appSettings = AppSettings.LoadConfiguration(configFileName);
         
-        // Build tool registry using reflection from configuration
-        var toolRegistryLogger = loggerFactory.CreateLogger<ToolRegistry>();
-        var descriptionLoaderLogger = loggerFactory.CreateLogger<ToolDescriptionLoader>();
-        var toolRegistry = new ToolRegistry(toolRegistryLogger, descriptionLoaderLogger, loggerFactory);
-        toolRegistry.LoadFromConfiguration(appSettings);
+        // Discover tools from loaded assemblies (triggered by referencing tool assemblies)
+        logger.LogInformation("Discovering MCP tools from loaded assemblies...");
+        var discoveredTools = McpToolDiscovery.DiscoverAllTools();
+        logger.LogInformation("Discovered {Count} tools: {Tools}", discoveredTools.Count, string.Join(", ", discoveredTools.Keys));
         
-        // Create agents
-        var agents = AgentFactory.Load(appSettings, toolRegistry);
-        
-        // Register in DI
+        // Register settings - agents will be created in UseAgents after DI is available
         builder.Services.AddSingleton(appSettings);
-        builder.Services.AddSingleton(agents);
-        builder.Services.AddSingleton(toolRegistry);
+        builder.Services.AddHttpClient();
         
         // If DevUI mode, add DevUI services and enable instrumentation/tracing
         if (appSettings.Provider.DevUI)
@@ -65,8 +60,6 @@ public static class AgentBuilderExtensions
                 .AddConsoleExporter()
                 .Build();
             
-            var agent = agents.Values.First();
-            builder.Services.AddSingleton(agent.Agent);
             builder.AddDevUI();
             builder.AddOpenAIResponses();
             builder.AddOpenAIConversations();
@@ -81,11 +74,16 @@ public static class AgentBuilderExtensions
     public static WebApplication UseAgents(this WebApplication app)
     {
         var appSettings = app.Services.GetRequiredService<AppSettings>();
-        var agents = app.Services.GetRequiredService<Dictionary<string, DevUIAwareAgent>>();
         var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("AgentFramework.Startup");
+        
+        // Create agents now that DI is available
+        var agents = AgentFactory.Load(appSettings, app.Services);
         
         if (appSettings.Provider.DevUI)
         {
+            // Register the first agent for DevUI
+            var agent = agents.Values.First();
+            
             // DevUI mode - configure DevUI endpoints
             app.MapOpenAIResponses();
             app.MapOpenAIConversations();

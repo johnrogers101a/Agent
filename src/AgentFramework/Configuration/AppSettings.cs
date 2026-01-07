@@ -7,7 +7,6 @@ public class AppSettings
 {
     public ProviderSettings Provider { get; set; } = new();
     public ClientsSettings Clients { get; set; } = new();
-    public List<ToolSettings> Tools { get; set; } = [];
     public List<AgentSettings> Agents { get; set; } = [];
 
     public static AppSettings LoadConfiguration(string fileName = "appsettings.json")
@@ -37,11 +36,11 @@ public class AppSettings
 
     public class ClientsSettings
     {
-        public GoogleWeatherSettings GoogleWeather { get; set; } = new();
+        public WeatherSettings Weather { get; set; } = new();
         public GmailSettings Gmail { get; set; } = new();
     }
 
-    public class GoogleWeatherSettings
+    public class WeatherSettings
     {
         public string ApiKey { get; set; } = string.Empty;
     }
@@ -52,19 +51,14 @@ public class AppSettings
         public string ClientSecret { get; set; } = string.Empty;
     }
 
-    public class ToolSettings
-    {
-        public string Name { get; set; } = string.Empty;
-        public string Class { get; set; } = string.Empty;
-        public string FactoryMethod { get; set; } = string.Empty;
-        public string BaseDescription { get; set; } = string.Empty;
-        public string? Description { get; set; }
-    }
-
     public class AgentSettings
     {
         public string Name { get; set; } = string.Empty;
         public string InstructionsFileName { get; set; } = string.Empty;
         public List<string> Tools { get; set; } = [];
+        /// <summary>
+        /// Optional per-tool description overrides. Key is tool name, value is file path to additional description.
+        /// </summary>
+        public Dictionary<string, string>? ToolDescriptions { get; set; }
     }
 }

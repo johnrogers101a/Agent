@@ -18,7 +18,7 @@ Write-Host "Project path: $resolvedPath" -ForegroundColor Gray
 Write-Host ""
 
 # Prompt for secrets
-$googleWeatherApiKey = Read-Host "Enter your Google Weather API Key"
+$weatherApiKey = Read-Host "Enter your Weather API Key"
 $gmailClientId = Read-Host "Enter your Gmail Client ID"
 $gmailClientSecret = Read-Host "Enter your Gmail Client Secret"
 
@@ -28,7 +28,7 @@ Write-Host "Setting user secrets..." -ForegroundColor Yellow
 # Set the secrets
 Push-Location $resolvedPath
 try {
-    dotnet user-secrets set "Clients:GoogleWeather:ApiKey" $googleWeatherApiKey
+    dotnet user-secrets set "Clients:Weather:ApiKey" $weatherApiKey
     dotnet user-secrets set "Clients:Gmail:ClientId" $gmailClientId
     dotnet user-secrets set "Clients:Gmail:ClientSecret" $gmailClientSecret
     

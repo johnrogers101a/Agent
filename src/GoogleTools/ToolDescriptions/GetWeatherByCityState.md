@@ -1,1 +1,0 @@
-Gets the current weather for a US city and state. Returns temperature, humidity, wind speed, and conditions for the specified location.

@@ -10,7 +10,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AgentFramework\AgentFramework.csproj" />
-    <ProjectReference Include="..\GoogleTools\GoogleTools.csproj" />
+    <ProjectReference Include="..\Gmail\Gmail.csproj" />
+    <ProjectReference Include="..\Weather\Weather.csproj" />
   </ItemGroup>
 
   <ItemGroup>
