@@ -90,11 +90,13 @@ public static class McpToolDiscovery
     /// <param name="toolDescriptionOverrides">Optional per-tool description overrides (file paths).</param>
     /// <param name="basePath">Base path for resolving description override files.</param>
     /// <param name="serviceProvider">Optional service provider for DI-based tool instantiation.</param>
+    /// <param name="wrapper">Optional wrapper to apply additional behavior (e.g., durable activity scheduling).</param>
     public static List<AIFunction> CreateToolsForAgent(
         List<string> toolNames,
         Dictionary<string, string>? toolDescriptionOverrides = null,
         string? basePath = null,
-        IServiceProvider? serviceProvider = null)
+        IServiceProvider? serviceProvider = null,
+        IAIFunctionWrapper? wrapper = null)
     {
         var allTools = DiscoverAllTools();
         var functions = new List<AIFunction>();
@@ -129,6 +131,11 @@ public static class McpToolDiscovery
             }
 
             var aiFunction = CreateAIFunction(tool, description, serviceProvider);
+            
+            // Apply wrapper if provided (e.g., durable activity scheduling)
+            if (wrapper is not null)
+                aiFunction = wrapper.Wrap(aiFunction, tool);
+            
             functions.Add(aiFunction);
         }
 

@@ -10,19 +10,19 @@
     - Model responds to API requests in OpenAI format
 #>
 
-BeforeDiscovery {
-    # Load deployment info from script scope (set by deploy-foundry.ps1)
-    $script:DeploymentInfo = $Global:DeploymentInfo
-}
+param(
+    [Parameter(Mandatory)]
+    [hashtable]$DeploymentInfo
+)
 
 Describe "Azure AI Foundry Deployment" -Tag "Integration" {
 
     BeforeAll {
-        # Get deployment info from global scope
-        $script:Info = $Global:DeploymentInfo
+        # Get deployment info from parameter
+        $script:Info = $DeploymentInfo
 
         if (-not $script:Info) {
-            throw "DeploymentInfo not found. Run deploy-foundry.ps1 first."
+            throw "DeploymentInfo not found. Run deploy.ps1 first."
         }
 
         # Import module for helper functions
@@ -46,6 +46,24 @@ Describe "Azure AI Foundry Deployment" -Tag "Integration" {
             $aiServices | Should -Not -BeNullOrEmpty
             $aiServices.properties.provisioningState | Should -Be "Succeeded"
         }
+
+        It "AI Services has project management enabled" {
+            $aiServices = az cognitiveservices account show `
+                --name $script:Info.AIServicesName `
+                --resource-group $script:Info.ResourceGroupName `
+                2>$null | ConvertFrom-Json
+            $aiServices.properties.allowProjectManagement | Should -Be $true
+        }
+
+        It "Foundry Project exists under AI Services" {
+            $project = az cognitiveservices account project show `
+                --name $script:Info.AIServicesName `
+                --project-name $script:Info.FoundryProjectName `
+                --resource-group $script:Info.ResourceGroupName `
+                2>$null | ConvertFrom-Json
+            $project | Should -Not -BeNullOrEmpty
+            $project.properties.provisioningState | Should -Be "Succeeded"
+        }
     }
 
     Context "Model Deployment" {
@@ -59,13 +77,13 @@ Describe "Azure AI Foundry Deployment" -Tag "Integration" {
             $deployment | Should -Not -BeNullOrEmpty
         }
 
-        It "Model name is 'gpt-oss-120b'" {
+        It "Model name matches configuration" {
             $deployment = az cognitiveservices account deployment show `
                 --name $script:Info.AIServicesName `
                 --resource-group $script:Info.ResourceGroupName `
                 --deployment-name $script:Info.ModelName `
                 2>$null | ConvertFrom-Json
-            $deployment.properties.model.name | Should -Be "gpt-oss-120b"
+            $deployment.properties.model.name | Should -Be $script:Info.ModelName
         }
 
         It "SKU is 'GlobalStandard'" {
@@ -80,85 +98,86 @@ Describe "Azure AI Foundry Deployment" -Tag "Integration" {
 
     Context "Network Security" {
 
-        It "Current IP is whitelisted" {
-            $account = az cognitiveservices account show `
+        It "Network default action is 'Deny'" {
+            $aiServices = az cognitiveservices account show `
                 --name $script:Info.AIServicesName `
                 --resource-group $script:Info.ResourceGroupName `
                 2>$null | ConvertFrom-Json
+            $aiServices.properties.networkAcls.defaultAction | Should -Be "Deny"
+        }
 
-            $ipRules = $account.properties.networkAcls.ipRules
-            $whitelisted = $ipRules | Where-Object { $_.value -eq $script:Info.PublicIp }
-            $whitelisted | Should -Not -BeNullOrEmpty
+        It "Current IP is whitelisted" {
+            $aiServices = az cognitiveservices account show `
+                --name $script:Info.AIServicesName `
+                --resource-group $script:Info.ResourceGroupName `
+                2>$null | ConvertFrom-Json
+            $ipRules = $aiServices.properties.networkAcls.ipRules
+            $ipRules.value | Should -Contain $script:Info.PublicIp
         }
     }
 
-    Context "Model API Verification" {
+    Context "Agent API" {
 
-        BeforeAll {
-            # Get access token for API calls
-            $script:Token = az account get-access-token `
-                --resource "https://cognitiveservices.azure.com" `
-                --query accessToken `
-                --output tsv
+        It "Agent 'Personal' exists" {
+            $script:Info.AgentId | Should -Not -BeNullOrEmpty
+        }
 
-            $script:ApiUrl = "$($script:Info.Endpoint)/openai/deployments/$($script:Info.ModelName)/chat/completions?api-version=$($script:Info.ApiVersion)"
-
-            $script:Headers = @{
-                "Authorization" = "Bearer $($script:Token)"
-                "Content-Type"  = "application/json"
+        It "Can list assistants via API" {
+            $token = az account get-access-token --resource "https://cognitiveservices.azure.com" --query accessToken -o tsv
+            $headers = @{
+                "Authorization" = "Bearer $token"
+                "Content-Type" = "application/json"
             }
+            $url = "$($script:Info.Endpoint)/openai/assistants?api-version=2025-01-01-preview"
+            $response = Invoke-RestMethod -Uri $url -Headers $headers -ErrorAction Stop
+            $response.data | Should -Not -BeNullOrEmpty
+        }
+    }
 
-            $script:Body = @{
-                messages   = @(
-                    @{
-                        role    = "user"
-                        content = "Say 'Hello' and nothing else."
-                    }
+    Context "API Connectivity" {
+
+        It "Endpoint is accessible (chat completions)" {
+            $token = az account get-access-token --resource "https://cognitiveservices.azure.com" --query accessToken -o tsv
+            $headers = @{
+                "Authorization" = "Bearer $token"
+                "Content-Type" = "application/json"
+            }
+            $body = @{
+                model = $script:Info.ModelName
+                messages = @(
+                    @{ role = "user"; content = "Say 'test' and nothing else." }
                 )
                 max_tokens = 10
-            } | ConvertTo-Json
+            } | ConvertTo-Json -Depth 5
 
-            # Make a single API call and cache the response to avoid rate limiting
-            $script:ApiResponse = Invoke-RestMethod `
-                -Uri $script:ApiUrl `
-                -Method POST `
-                -Headers $script:Headers `
-                -Body $script:Body `
-                -ErrorAction Stop
+            $url = "$($script:Info.Endpoint)/openai/deployments/$($script:Info.ModelName)/chat/completions?api-version=2024-02-15-preview"
+            $response = Invoke-RestMethod -Uri $url -Method POST -Headers $headers -Body $body -ErrorAction Stop
+            $response.choices | Should -Not -BeNullOrEmpty
         }
 
-        It "Returns 200 on chat/completions endpoint" {
-            # If we got here via BeforeAll, the request succeeded
-            $script:ApiResponse | Should -Not -BeNullOrEmpty
-        }
+        It "Model responds with valid OpenAI format" {
+            $token = az account get-access-token --resource "https://cognitiveservices.azure.com" --query accessToken -o tsv
+            $headers = @{
+                "Authorization" = "Bearer $token"
+                "Content-Type" = "application/json"
+            }
+            $body = @{
+                model = $script:Info.ModelName
+                messages = @(
+                    @{ role = "user"; content = "Reply with exactly: Hello from Azure" }
+                )
+                max_tokens = 20
+            } | ConvertTo-Json -Depth 5
 
-        It "Response contains 'choices' array" {
-            $script:ApiResponse.choices | Should -Not -BeNullOrEmpty
-            # PowerShell unwraps single-element arrays, so check for at least one choice
-            @($script:ApiResponse.choices).Count | Should -BeGreaterOrEqual 1
-        }
+            $url = "$($script:Info.Endpoint)/openai/deployments/$($script:Info.ModelName)/chat/completions?api-version=2024-02-15-preview"
+            $response = Invoke-RestMethod -Uri $url -Method POST -Headers $headers -Body $body -ErrorAction Stop
 
-        It "Response follows OpenAI format with 'message' in choice" {
-            $choice = @($script:ApiResponse.choices)[0]
-            $choice.message | Should -Not -BeNullOrEmpty
-            $choice.message.role | Should -Be "assistant"
-            # Content may be in 'content' directly or could be empty for some responses
-            ($choice.message.content -or $choice.message.PSObject.Properties.Name -contains 'content') | Should -BeTrue
-        }
-
-        It "Response contains 'id' field" {
-            $script:ApiResponse.id | Should -Not -BeNullOrEmpty
-        }
-
-        It "Response contains 'model' field" {
-            $script:ApiResponse.model | Should -Not -BeNullOrEmpty
-        }
-
-        It "Response contains 'usage' statistics" {
-            $script:ApiResponse.usage | Should -Not -BeNullOrEmpty
-            $script:ApiResponse.usage.prompt_tokens | Should -BeGreaterThan 0
-            $script:ApiResponse.usage.completion_tokens | Should -BeGreaterThan 0
-            $script:ApiResponse.usage.total_tokens | Should -BeGreaterThan 0
+            # Verify OpenAI response format
+            $response.id | Should -Match "^chatcmpl-"
+            $response.object | Should -Be "chat.completion"
+            $response.model | Should -Not -BeNullOrEmpty
+            $response.choices[0].message.role | Should -Be "assistant"
+            $response.choices[0].message.content | Should -Not -BeNullOrEmpty
         }
     }
 }

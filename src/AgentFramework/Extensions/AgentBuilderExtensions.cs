@@ -4,6 +4,7 @@ using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.DevUI;
 using OpenTelemetry;
 using OpenTelemetry.Trace;
+using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -74,6 +75,11 @@ public static class AgentBuilderExtensions
             builder.AddDevUI();
             builder.AddOpenAIResponses();
             builder.AddOpenAIConversations();
+        }
+        else
+        {
+            // API mode - add OpenAPI/Swagger support
+            builder.Services.AddOpenApi();
         }
         
         return builder;
@@ -199,8 +205,16 @@ public static class AgentBuilderExtensions
             var agents = AgentFactory.Load(appSettings, app.Services);
             app.MapOllamaEndpoints(agents, appSettings);
             
+            // Map OpenAPI/Swagger
+            app.MapOpenApi();
+            app.UseSwaggerUI(options =>
+            {
+                options.SwaggerEndpoint("/openapi/v1.json", "Agent API");
+            });
+            
             var port = appSettings.Provider.DevUIPort > 0 ? appSettings.Provider.DevUIPort : 11435;
-            app.Urls.Add($"http://localhost:{port}");
+            var url = $"http://localhost:{port}";
+            app.Urls.Add(url);
             
             logger.LogInformation(StartupMessages.OllamaApiRunning, port);
             logger.LogInformation(StartupMessages.AvailableEndpoints);
@@ -208,6 +222,13 @@ public static class AgentBuilderExtensions
             logger.LogInformation(StartupMessages.EndpointChat);
             logger.LogInformation(StartupMessages.EndpointTags);
             logger.LogInformation(StartupMessages.EndpointPs);
+            
+            // Open browser to Swagger UI on startup
+            var swaggerUrl = $"{url}/swagger";
+            app.Lifetime.ApplicationStarted.Register(() =>
+            {
+                Process.Start(new ProcessStartInfo(swaggerUrl) { UseShellExecute = true });
+            });
         }
         
         return app;

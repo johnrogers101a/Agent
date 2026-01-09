@@ -1,0 +1,37 @@
+## Development environment variables
+## Naming convention: {abbreviation}-{appName}-{environment}-{region}
+## Reference: https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations
+
+variables:
+  # Environment identifier
+  environment: 'dev'
+  
+  # Azure subscription
+  subscriptionName: 'Visual Studio Enterprise Subscription'
+  
+  # Resource Group: rg-{appName}-{environment}-{region}
+  resourceGroupName: 'rg-personalagent-dev-wus'
+  
+  # AI Services: ais-{appName}-{environment}-{region}
+  aiServicesName: 'ais-personalagent-dev-wus'
+  
+  # Azure AI Hub: hub-{appName}-{environment}-{region}
+  foundryHubName: 'hub-personalagent-dev-wus'
+  
+  # Azure AI Project: proj-{appName}-{environment}-{region}
+  foundryProjectName: 'proj-personalagent-dev-wus'
+  
+  # Storage Account: st{appName}{environment}{region} (no hyphens, max 24 chars)
+  storageAccountName: 'stpersonalagentdevwus'
+  
+  # Function App: func-{appName}-{environment}-{region}
+  functionAppName: 'func-personalagent-dev-wus'
+  
+  # Durable Task Scheduler: dts-{appName}-{environment}-{region}
+  durableSchedulerName: 'dts-personalagent-dev-wus'
+  
+  # Task Hub: th-{appName}-{environment}
+  taskHubName: 'th-personalagent-dev'
+  
+  # Application Insights: appi-{appName}-{environment}-{region}
+  appInsightsName: 'appi-personalagent-dev-wus'

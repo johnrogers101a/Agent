@@ -33,5 +33,5 @@ foreach ($function in $PublicFunctions) {
     }
 }
 
-# Export public functions
-Export-ModuleMember -Function $PublicFunctions.BaseName
+# Export all functions from the module
+Export-ModuleMember -Function *

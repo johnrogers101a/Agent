@@ -1,13 +1,13 @@
 <#
 .SYNOPSIS
-    Ensures an Azure OpenAI model deployment exists.
+    Initializes an Azure OpenAI model deployment.
 
 .DESCRIPTION
-    Checks if the specified model deployment exists. If not, creates it.
-    Uses the Cognitive Services API to deploy the model.
+    Ensures the specified model deployment exists. If it doesn't exist, creates it.
+    Uses the Cognitive Services API to deploy the model. This operation is idempotent.
 
 .PARAMETER AccountName
-    The name of the Cognitive Services account (AI Foundry Project).
+    The name of the AI Services account.
 
 .PARAMETER ResourceGroupName
     The name of the resource group.
@@ -16,13 +16,13 @@
     The name for the deployment.
 
 .PARAMETER ModelName
-    The name of the model to deploy (e.g., gpt-oss-120b).
+    The name of the model to deploy (e.g., gpt-4.1).
 
 .PARAMETER ModelVersion
     The version of the model.
 
 .PARAMETER ModelFormat
-    The format of the model (e.g., OpenAI-OSS).
+    The format of the model (e.g., OpenAI).
 
 .PARAMETER SkuName
     The SKU name (e.g., GlobalStandard).
@@ -31,10 +31,10 @@
     The SKU capacity (tokens per minute in thousands).
 
 .EXAMPLE
-    Ensure-ModelDeployment -AccountName "proj-myapp" -ResourceGroupName "rg-myapp" -DeploymentName "gpt-oss-120b" -ModelName "gpt-oss-120b" -ModelVersion "1" -ModelFormat "OpenAI-OSS" -SkuName "GlobalStandard" -SkuCapacity 10
+    Initialize-ModelDeployment -AccountName "ais-agents" -ResourceGroupName "rg-agents" -DeploymentName "gpt-4.1" -ModelName "gpt-4.1" -ModelVersion "2025-04-14" -ModelFormat "OpenAI" -SkuName "GlobalStandard" -SkuCapacity 10
 #>
-function Ensure-ModelDeployment {
-    [CmdletBinding()]
+function Initialize-ModelDeployment {
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory)]
         [string]$AccountName,
@@ -61,7 +61,7 @@ function Ensure-ModelDeployment {
         [int]$SkuCapacity
     )
 
-    Write-Host "Checking model deployment '$DeploymentName'..." -ForegroundColor Cyan
+    Write-Information "Checking model deployment '$DeploymentName'..."
 
     $existing = az cognitiveservices account deployment show `
         --name $AccountName `
@@ -70,11 +70,15 @@ function Ensure-ModelDeployment {
         2>$null | ConvertFrom-Json -ErrorAction SilentlyContinue
 
     if ($existing) {
-        Write-Host "  Model deployment '$DeploymentName' already exists" -ForegroundColor Green
+        Write-Information "  [OK] Model deployment '$DeploymentName' already exists"
         return $existing
     }
 
-    Write-Host "  Creating model deployment '$DeploymentName' (this may take several minutes)..." -ForegroundColor Yellow
+    if (-not $PSCmdlet.ShouldProcess($DeploymentName, "Create model deployment")) {
+        return
+    }
+
+    Write-Information "  Creating model deployment '$DeploymentName' (this may take several minutes)..."
     $result = az cognitiveservices account deployment create `
         --name $AccountName `
         --resource-group $ResourceGroupName `
@@ -90,6 +94,6 @@ function Ensure-ModelDeployment {
         throw "Failed to create model deployment '$DeploymentName'"
     }
 
-    Write-Host "  Model deployment '$DeploymentName' created successfully" -ForegroundColor Green
+    Write-Information "  [OK] Model deployment '$DeploymentName' created"
     return $result
 }

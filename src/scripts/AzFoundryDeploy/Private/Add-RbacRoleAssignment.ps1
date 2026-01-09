@@ -1,9 +1,10 @@
 <#
 .SYNOPSIS
-    Assigns an RBAC role to a user or service principal.
+    Adds an RBAC role assignment to a principal.
 
 .DESCRIPTION
-    Assigns the specified role to the current signed-in user on the given scope.
+    Assigns the specified role to the current signed-in user (or specified principal) on the given scope.
+    Skips if the role is already assigned.
 
 .PARAMETER Scope
     The resource ID scope for the role assignment.
@@ -15,9 +16,9 @@
     The object ID of the principal. If not provided, uses the current signed-in user.
 
 .EXAMPLE
-    Set-RbacRole -Scope "/subscriptions/.../resourceGroups/rg-myapp" -RoleName "Cognitive Services OpenAI User"
+    Add-RbacRoleAssignment -Scope "/subscriptions/.../resourceGroups/rg-myapp" -RoleName "Cognitive Services OpenAI User"
 #>
-function Set-RbacRole {
+function Add-RbacRoleAssignment {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -30,7 +31,7 @@ function Set-RbacRole {
         [string]$PrincipalId
     )
 
-    Write-Host "Configuring RBAC role '$RoleName'..." -ForegroundColor Cyan
+    Write-Information "Configuring RBAC role '$RoleName'..."
 
     # Get current user's object ID if not provided
     if (-not $PrincipalId) {
@@ -40,7 +41,7 @@ function Set-RbacRole {
             return
         }
         $PrincipalId = $currentUser.id
-        Write-Host "  Assigning to current user: $($currentUser.userPrincipalName)" -ForegroundColor Yellow
+        Write-Information "  Assigning to current user: $($currentUser.userPrincipalName)"
     }
 
     # Check if role assignment already exists
@@ -51,12 +52,12 @@ function Set-RbacRole {
         2>$null | ConvertFrom-Json -ErrorAction SilentlyContinue
 
     if ($existing -and $existing.Count -gt 0) {
-        Write-Host "  Role '$RoleName' already assigned" -ForegroundColor Green
+        Write-Information "  [OK] Role '$RoleName' already assigned"
         return $existing[0]
     }
 
     # Create role assignment
-    Write-Host "  Creating role assignment..." -ForegroundColor Yellow
+    Write-Information "  Creating role assignment..."
     $result = az role assignment create `
         --assignee $PrincipalId `
         --scope $Scope `
@@ -68,6 +69,6 @@ function Set-RbacRole {
         return
     }
 
-    Write-Host "  Role '$RoleName' assigned successfully" -ForegroundColor Green
+    Write-Information "  [OK] Role '$RoleName' assigned"
     return $result
 }

@@ -7,6 +7,7 @@ public class AppSettings
     public ProviderSettings Provider { get; set; } = new();
     public ClientsSettings Clients { get; set; } = new();
     public List<AgentSettings> Agents { get; set; } = [];
+    public FoundrySettings Foundry { get; set; } = new();
 
     public static AppSettings LoadConfiguration(string fileName = "appsettings.json")
     {
@@ -59,5 +60,21 @@ public class AppSettings
         /// Optional per-tool description overrides. Key is tool name, value is file path to additional description.
         /// </summary>
         public Dictionary<string, string>? ToolDescriptions { get; set; }
+    }
+
+    /// <summary>
+    /// Runtime settings for Azure AI Foundry connectivity.
+    /// Deployment-specific config (replicas, hub names) stays in Config.psd1.
+    /// </summary>
+    public class FoundrySettings
+    {
+        /// <summary>
+        /// Azure AI Foundry account name for endpoint URL construction.
+        /// </summary>
+        public string AccountName { get; set; } = string.Empty;
+        /// <summary>
+        /// Foundry project name where agents are registered.
+        /// </summary>
+        public string ProjectName { get; set; } = string.Empty;
     }
 }

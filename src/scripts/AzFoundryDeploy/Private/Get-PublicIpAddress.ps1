@@ -12,18 +12,18 @@ function Get-PublicIpAddress {
     [CmdletBinding()]
     param()
 
-    Write-Host "Detecting public IP address..." -ForegroundColor Cyan
+    Write-Information "Detecting public IP address..."
 
     try {
         $ip = (Invoke-RestMethod -Uri "https://ifconfig.me/ip" -TimeoutSec 10).Trim()
-        Write-Host "  Public IP: $ip" -ForegroundColor Green
+        Write-Information "  Public IP: $ip"
         return $ip
     }
     catch {
         # Try alternative service
         try {
             $ip = (Invoke-RestMethod -Uri "https://api.ipify.org" -TimeoutSec 10).Trim()
-            Write-Host "  Public IP: $ip" -ForegroundColor Green
+            Write-Information "  Public IP: $ip"
             return $ip
         }
         catch {

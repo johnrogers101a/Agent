@@ -22,13 +22,25 @@
     CompanyName       = '4JS'
 
     # Description of the functionality provided by this module
-    Description       = 'Deploys Azure AI Foundry infrastructure with gpt-oss-120b model, IP whitelisting, and auto-configures PersonalAgent.'
+    Description       = 'Deploys Azure AI Foundry infrastructure with model deployments, durable agents, IP whitelisting, and auto-configures PersonalAgent.'
 
     # Minimum version of the PowerShell engine required by this module
     PowerShellVersion = '7.0'
 
     # Functions to export from this module
-    FunctionsToExport = @('Deploy-AzFoundry')
+    FunctionsToExport = @(
+        'Add-NetworkRule',
+        'Add-RbacRoleAssignment',
+        'Get-AzAccessToken',
+        'Get-PublicIpAddress',
+        'Initialize-AIServiceAccount',
+        'Initialize-FoundryProject',
+        'Initialize-FunctionApp',
+        'Initialize-ModelDeployment',
+        'Initialize-ResourceGroup',
+        'Initialize-StorageAccount',
+        'Update-AppSetting'
+    )
 
     # Cmdlets to export from this module
     CmdletsToExport   = @()
@@ -43,7 +55,7 @@
     PrivateData       = @{
         PSData = @{
             # Tags applied to this module for discovery
-            Tags         = @('Azure', 'Foundry', 'OpenAI', 'IaC', 'gpt-oss-120b')
+            Tags         = @('Azure', 'Foundry', 'OpenAI', 'IaC', 'gpt-oss-120b', 'DurableAgents', 'AzureFunctions')
 
             # License URI for this module
             LicenseUri   = ''
@@ -52,7 +64,7 @@
             ProjectUri   = ''
 
             # Release notes for this module
-            ReleaseNotes = 'Initial release - deploys gpt-oss-120b to Azure AI Foundry with IP whitelisting.'
+            ReleaseNotes = 'v1.1.0 - Added Deploy-DurableAgent for Azure Functions durable agent deployment.'
         }
     }
 }

@@ -1,0 +1,24 @@
+## Base application variables - shared across all environments
+## These are defaults that can be overridden in environment-specific files
+
+variables:
+  # Application identity
+  appName: 'personalagent'
+  appDescription: 'AI Agent Framework POC'
+  
+  # Azure region
+  location: 'westus'
+  
+  # Model deployment settings
+  modelName: 'gpt-4o'
+  modelVersion: '2024-11-20'
+  modelFormat: 'OpenAI'
+  skuName: 'GlobalStandard'
+  skuCapacity: 10
+  
+  # API version for Azure OpenAI
+  apiVersion: '2024-10-21'
+  
+  # Source paths (relative to repo root)
+  sourceProjectPath: 'src/PersonalAgent'
+  appSettingsPath: 'src/PersonalAgent/appsettings.json'
