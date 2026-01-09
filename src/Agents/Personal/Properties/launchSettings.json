@@ -1,12 +1,11 @@
 {
   "profiles": {
-    "PersonalAgent": {
+    "Personal": {
       "commandName": "Project",
-      "launchBrowser": true,
+      "commandLineArgs": "",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      },
-      "applicationUrl": "https://localhost:52366;http://localhost:52367"
+        "AZURE_FUNCTIONS_ENVIRONMENT": "Development"
+      }
     }
   }
 }

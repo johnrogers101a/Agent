@@ -1,7 +1,3 @@
-using AgentFramework.Extensions;
+// Copyright (c) 4JS. All rights reserved.
 
-var builder = WebApplication.CreateBuilder(args);
-builder.ConfigureAgent();
-var app = builder.Build();
-app.UseAgents();
-app.Run();
+AgentFramework.AgentHost.Start(args);

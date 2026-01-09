@@ -38,6 +38,9 @@ public static class DurableAgentBuilderExtensions
         this FunctionsApplicationBuilder builder,
         string configFileName)
     {
+        // Configure Functions web application (registers durable task bindings)
+        builder.ConfigureFunctionsWebApplication();
+
         // Add configuration
         builder.Configuration.AddJsonFile(configFileName, optional: false, reloadOnChange: true);
 
@@ -110,17 +113,15 @@ public static class DurableAgentBuilderExtensions
     /// </summary>
     private static bool IsLocalEnvironment()
     {
-        // Multiple checks for Azure environment - any of these indicate Azure hosting
-        var azureIndicators = new[]
+        // These environment variables are ONLY set when running in Azure, never locally
+        var azureOnlyIndicators = new[]
         {
             "WEBSITE_INSTANCE_ID",     // Standard Azure App Service/Functions
             "WEBSITE_SITE_NAME",       // Azure App Service site name
-            "FUNCTIONS_WORKER_RUNTIME", // Azure Functions runtime (but may be auto-set)
-            "AZURE_FUNCTIONS_ENVIRONMENT", // Azure Functions environment
             "CONTAINER_NAME"           // Flex Consumption container
         };
 
-        foreach (var indicator in azureIndicators)
+        foreach (var indicator in azureOnlyIndicators)
         {
             var value = Environment.GetEnvironmentVariable(indicator);
             if (!string.IsNullOrEmpty(value))

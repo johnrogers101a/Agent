@@ -32,6 +32,10 @@ public class AppSettings
         public string? ApiKey { get; set; }
         public bool DevUI { get; set; } = false;
         public int DevUIPort { get; set; } = 8080;
+        /// <summary>
+        /// When true, runs as Azure Functions with durable agents. When false, runs as WebApplication with DevUI.
+        /// </summary>
+        public bool FunctionMode { get; set; } = false;
     }
 
     public class ClientsSettings
