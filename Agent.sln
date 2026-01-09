@@ -5,11 +5,11 @@ VisualStudioVersion = 18.1.11312.151
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentFramework", "src\AgentFramework\AgentFramework.csproj", "{AEF9CCA9-6196-3F19-3B50-772B7E66CDE4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PersonalAgent", "src\PersonalAgent\PersonalAgent.csproj", "{C1234567-1234-1234-1234-123456789013}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Personal", "src\Agents\Personal\Personal.csproj", "{C1234567-1234-1234-1234-123456789013}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gmail", "src\Gmail\Gmail.csproj", "{08AD6377-55FA-4446-A5EE-9DFFBFEF688D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gmail", "src\Tools\Gmail\Gmail.csproj", "{08AD6377-55FA-4446-A5EE-9DFFBFEF688D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Weather", "src\Weather\Weather.csproj", "{EE782E12-0E8D-4D91-AD1D-605A26DC1985}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Weather", "src\Tools\Weather\Weather.csproj", "{EE782E12-0E8D-4D91-AD1D-605A26DC1985}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

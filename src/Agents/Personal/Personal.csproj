@@ -9,9 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AgentFramework\AgentFramework.csproj" />
-    <ProjectReference Include="..\Tools\Gmail\Gmail.csproj" />
-    <ProjectReference Include="..\Tools\Weather\Weather.csproj" />
+    <ProjectReference Include="..\..\AgentFramework\AgentFramework.csproj" />
+    <ProjectReference Include="..\..\Tools\Gmail\Gmail.csproj" />
+    <ProjectReference Include="..\..\Tools\Weather\Weather.csproj" />
   </ItemGroup>
 
   <ItemGroup>
