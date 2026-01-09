@@ -429,3 +429,11 @@ FodyWeavers.xsd
 
 # Gmail API tokens
 **/*tokens.json
+
+# Node.js / Frontend build artifacts
+dist/
+dist-ssr/
+*.local
+.eslintcache
+*.tsbuildinfo
+coverage/
