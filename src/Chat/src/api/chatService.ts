@@ -3,58 +3,71 @@ export interface ChatMessage {
   content: string
 }
 
+// Configuration for AgentFramework API
+// Supports both Ollama-compatible API (local) and Azure Functions API (deployed)
 const config = {
-  endpoint: import.meta.env.VITE_AZURE_OPENAI_ENDPOINT,
-  apiKey: import.meta.env.VITE_AZURE_OPENAI_KEY,
-  assistantId: import.meta.env.VITE_AZURE_OPENAI_ASSISTANT_ID,
-  apiVersion: import.meta.env.VITE_AZURE_OPENAI_API_VERSION || '2024-05-01-preview',
+  // Use environment variable or default to localhost for local development
+  endpoint: import.meta.env.VITE_AGENT_API_ENDPOINT || 'http://localhost:8080',
+  model: import.meta.env.VITE_AGENT_MODEL || 'Personal',
+  // API mode: 'ollama' for local, 'azure-functions' for deployed Azure Functions
+  apiMode: (import.meta.env.VITE_AGENT_API_MODE || 'ollama') as 'ollama' | 'azure-functions',
 }
 
-interface ThreadMessage {
-  id: string
-  role: 'user' | 'assistant'
-  content: Array<{ type: string; text?: { value: string } }>
-}
-
-interface RunStatus {
-  id: string
-  status: 'queued' | 'in_progress' | 'requires_action' | 'completed' | 'failed' | 'cancelled' | 'expired'
-  required_action?: {
-    type: string
-    submit_tool_outputs?: {
-      tool_calls: Array<{
-        id: string
-        type: string
-        function: {
-          name: string
-          arguments: string
-        }
-      }>
-    }
-  }
-  last_error?: {
-    code: string
-    message: string
-  }
-}
-
-// Store thread ID for conversation continuity
+// Store thread ID for Azure Functions API conversation continuity
 let currentThreadId: string | null = null
 
-async function apiCall<T>(
-  path: string,
-  method: 'GET' | 'POST' = 'GET',
-  body?: unknown,
-): Promise<T> {
-  const url = `${config.endpoint}/openai${path}?api-version=${config.apiVersion}`
+interface OllamaChatRequest {
+  model: string
+  messages: Array<{ role: string; content: string }>
+  stream?: boolean
+}
+
+interface OllamaChatResponse {
+  model: string
+  message: {
+    role: string
+    content: string
+  }
+  done: boolean
+}
+
+interface AzureFunctionsRunRequest {
+  message: string
+  thread_id?: string
+  role?: string
+}
+
+interface AzureFunctionsRunResponse {
+  content?: string
+  thread_id?: string
+  correlation_id?: string
+  status?: string
+  error?: string
+}
+
+/**
+ * Send a chat message using the Ollama-compatible API (local mode).
+ */
+async function sendMessageOllama(
+  messages: ChatMessage[],
+  onChunk: (content: string) => void,
+  signal?: AbortSignal,
+): Promise<string> {
+  const url = `${config.endpoint}/api/chat`
+
+  const request: OllamaChatRequest = {
+    model: config.model,
+    messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    stream: true,
+  }
 
   const response = await fetch(url, {
-    method,
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'api-key': config.apiKey,
     },
-    body: body ? JSON.stringify(body) : undefined,
+    body: JSON.stringify(request),
+    signal,
   })
 
   if (!response.ok) {
@@ -62,126 +75,73 @@ async function apiCall<T>(
     let errorMessage = `API error: ${response.status}`
     try {
       const errorJson = JSON.parse(errorText)
-      errorMessage = errorJson.error?.message || errorMessage
+      errorMessage = errorJson.error || errorMessage
     } catch {
       errorMessage = errorText || errorMessage
     }
     throw new Error(errorMessage)
   }
 
-  return response.json()
-}
-
-/**
- * Create a new thread for conversation.
- */
-async function createThread(): Promise<string> {
-  const result = await apiCall<{ id: string }>('/threads', 'POST', {})
-  return result.id
-}
-
-/**
- * Add a message to the thread.
- */
-async function addMessage(threadId: string, content: string): Promise<void> {
-  await apiCall(`/threads/${threadId}/messages`, 'POST', {
-    role: 'user',
-    content,
-  })
-}
-
-/**
- * Create a run for the assistant on the thread.
- */
-async function createRun(threadId: string): Promise<string> {
-  const result = await apiCall<{ id: string }>(`/threads/${threadId}/runs`, 'POST', {
-    assistant_id: config.assistantId,
-  })
-  return result.id
-}
-
-/**
- * Get the status of a run.
- */
-async function getRunStatus(threadId: string, runId: string): Promise<RunStatus> {
-  return apiCall<RunStatus>(`/threads/${threadId}/runs/${runId}`)
-}
-
-/**
- * Get the latest assistant message from the thread.
- */
-async function getLatestAssistantMessage(threadId: string): Promise<string> {
-  const result = await apiCall<{ data: ThreadMessage[] }>(`/threads/${threadId}/messages`)
-
-  // Find the latest assistant message
-  for (const msg of result.data) {
-    if (msg.role === 'assistant') {
-      const textContent = msg.content.find((c) => c.type === 'text')
-      return textContent?.text?.value || ''
-    }
+  // Handle streaming response (newline-delimited JSON)
+  const reader = response.body?.getReader()
+  if (!reader) {
+    throw new Error('No response body')
   }
 
-  return ''
-}
+  const decoder = new TextDecoder()
+  let fullContent = ''
+  let buffer = ''
 
-/**
- * Poll until the run is complete, handling tool calls.
- */
-async function waitForRunCompletion(
-  threadId: string,
-  runId: string,
-  onStatus?: (status: string) => void,
-  signal?: AbortSignal,
-): Promise<void> {
-  const maxAttempts = 120 // 2 minutes with 1s polling
-  let attempts = 0
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
 
-  while (attempts < maxAttempts) {
-    if (signal?.aborted) {
-      throw new Error('Request cancelled')
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+
+      // Process complete JSON lines
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || '' // Keep incomplete line in buffer
+
+      for (const line of lines) {
+        if (!line.trim()) continue
+
+        try {
+          const chunk: OllamaChatResponse = JSON.parse(line)
+          if (chunk.message?.content) {
+            onChunk(chunk.message.content)
+            fullContent += chunk.message.content
+          }
+        } catch {
+          // Skip malformed JSON lines
+        }
+      }
     }
 
-    const status = await getRunStatus(threadId, runId)
-    onStatus?.(status.status)
-
-    switch (status.status) {
-      case 'completed':
-        return
-
-      case 'failed':
-      case 'cancelled':
-      case 'expired':
-        throw new Error(status.last_error?.message || `Run ${status.status}`)
-
-      case 'requires_action':
-        // The Azure OpenAI service handles tool execution via MCP triggers
-        // This should not happen if tools are properly configured as Azure Functions
-        // But if it does, we need to wait for Azure to complete the tool calls
-        onStatus?.('Executing tools...')
-        break
-
-      case 'queued':
-      case 'in_progress':
-        // Continue polling
-        break
+    // Process any remaining buffer
+    if (buffer.trim()) {
+      try {
+        const chunk: OllamaChatResponse = JSON.parse(buffer)
+        if (chunk.message?.content) {
+          onChunk(chunk.message.content)
+          fullContent += chunk.message.content
+        }
+      } catch {
+        // Skip malformed JSON
+      }
     }
-
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    attempts++
+  } finally {
+    reader.releaseLock()
   }
 
-  throw new Error('Run timed out')
+  return fullContent
 }
 
 /**
- * Send a chat message and receive a response.
- * Uses the Azure OpenAI Assistants API with tool execution.
- *
- * @param messages - The conversation history (used for display, not sent to API since thread maintains state)
- * @param onChunk - Callback for status updates (not streaming tokens)
- * @param signal - AbortSignal to cancel the request
+ * Send a chat message using Azure Functions API (deployed mode).
  */
-export async function sendMessage(
+async function sendMessageAzureFunctions(
   messages: ChatMessage[],
   onChunk: (content: string) => void,
   signal?: AbortSignal,
@@ -192,47 +152,144 @@ export async function sendMessage(
     throw new Error('No user message provided')
   }
 
-  // Create a new thread if we don't have one
-  if (!currentThreadId) {
-    onChunk('Creating conversation...\n')
-    currentThreadId = await createThread()
+  const url = `${config.endpoint}/api/agents/${config.model}/run`
+
+  const request: AzureFunctionsRunRequest = {
+    message: userMessage.content,
+    thread_id: currentThreadId || undefined,
+    role: 'user',
   }
 
-  // Add the user message to the thread
-  await addMessage(currentThreadId, userMessage.content)
+  onChunk('') // Clear any previous content indicator
 
-  // Create a run
-  onChunk('Thinking...\n')
-  const runId = await createRun(currentThreadId)
-
-  // Wait for completion, handling tool calls
-  await waitForRunCompletion(
-    currentThreadId,
-    runId,
-    (status) => {
-      if (status === 'in_progress') {
-        onChunk('')
-      }
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify(request),
     signal,
-  )
+  })
 
-  // Get the response
-  const response = await getLatestAssistantMessage(currentThreadId)
+  if (!response.ok) {
+    const errorText = await response.text()
+    let errorMessage = `API error: ${response.status}`
+    try {
+      const errorJson = JSON.parse(errorText)
+      errorMessage = errorJson.error || errorMessage
+    } catch {
+      errorMessage = errorText || errorMessage
+    }
+    throw new Error(errorMessage)
+  }
 
-  return response
+  const result: AzureFunctionsRunResponse = await response.json()
+
+  // Store thread ID for conversation continuity
+  if (result.thread_id) {
+    currentThreadId = result.thread_id
+  }
+
+  if (result.error) {
+    throw new Error(result.error)
+  }
+
+  const content = result.content || ''
+  onChunk(content)
+  return content
 }
 
 /**
- * Clear the current conversation thread.
+ * Send a chat message and receive a response.
+ * Automatically selects the appropriate API based on configuration.
+ *
+ * @param messages - The conversation history
+ * @param onChunk - Callback for streaming content chunks
+ * @param signal - AbortSignal to cancel the request
  */
-export function clearConversation(): void {
-  currentThreadId = null
+export async function sendMessage(
+  messages: ChatMessage[],
+  onChunk: (content: string) => void,
+  signal?: AbortSignal,
+): Promise<string> {
+  if (config.apiMode === 'azure-functions') {
+    return sendMessageAzureFunctions(messages, onChunk, signal)
+  }
+  return sendMessageOllama(messages, onChunk, signal)
 }
 
 /**
- * Send a chat message without status updates (for simpler use cases).
+ * Clear the current conversation.
+ */
+export async function clearConversation(): Promise<void> {
+  if (config.apiMode === 'azure-functions') {
+    // For Azure Functions, just clear the thread ID
+    currentThreadId = null
+    return
+  }
+
+  // For Ollama API, call the reset endpoint
+  try {
+    await fetch(`${config.endpoint}/api/reset`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ model: config.model }),
+    })
+  } catch {
+    // Ignore errors - conversation will be cleared locally anyway
+  }
+}
+
+/**
+ * Send a chat message without streaming (for simpler use cases).
  */
 export async function sendMessageSync(messages: ChatMessage[]): Promise<string> {
-  return sendMessage(messages, () => {})
+  if (config.apiMode === 'azure-functions') {
+    return sendMessageAzureFunctions(messages, () => {})
+  }
+
+  const url = `${config.endpoint}/api/chat`
+
+  const request: OllamaChatRequest = {
+    model: config.model,
+    messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    stream: false,
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  })
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`)
+  }
+
+  const result: OllamaChatResponse = await response.json()
+  return result.message?.content || ''
+}
+
+/**
+ * Get available models/agents from the API.
+ */
+export async function getAvailableModels(): Promise<string[]> {
+  if (config.apiMode === 'azure-functions') {
+    // Azure Functions doesn't have a tags endpoint, return configured model
+    return [config.model]
+  }
+
+  try {
+    const response = await fetch(`${config.endpoint}/api/tags`)
+    if (!response.ok) return [config.model]
+
+    const result = await response.json()
+    return result.models?.map((m: { name: string }) => m.name) || [config.model]
+  } catch {
+    return [config.model]
+  }
 }

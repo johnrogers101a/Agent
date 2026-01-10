@@ -130,7 +130,8 @@ export const useChatStore = defineStore('chat', () => {
     messages.value = []
     error.value = null
     streamingContent.value = ''
-    clearConversation() // Clear the thread ID in the API service
+    // Clear conversation on the server (fire and forget)
+    void clearConversation()
   }
 
   function clearError() {

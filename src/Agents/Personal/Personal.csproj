@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -8,6 +8,10 @@
     <Nullable>enable</Nullable>
     <UserSecretsId>e595110b-1ec5-45bc-a91f-01ecdeee5b6a</UserSecretsId>
     <_FunctionsSkipCleanOutput>true</_FunctionsSkipCleanOutput>
+    <!-- Disable Azure Functions run behavior for local dev - run as standard web app -->
+    <AzureFunctionsRunCommand></AzureFunctionsRunCommand>
+    <RunCommand>dotnet</RunCommand>
+    <RunArguments>$(OutputPath)$(AssemblyName).dll</RunArguments>
   </PropertyGroup>
 
   <ItemGroup>

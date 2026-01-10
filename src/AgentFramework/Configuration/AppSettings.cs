@@ -12,7 +12,9 @@ public class AppSettings
     public static AppSettings LoadConfiguration(string fileName = "appsettings.json")
     {
         var builder = new ConfigurationBuilder()
-            .AddJsonFile(fileName);
+            .AddJsonFile(fileName, optional: true)
+            .AddJsonFile("appsettings.Azure.json", optional: true)
+            .AddEnvironmentVariables();
 
         // Try to load user secrets from the entry assembly (the main app)
         var entryAssembly = Assembly.GetEntryAssembly();

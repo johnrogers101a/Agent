@@ -2,10 +2,9 @@
   "version": "2.0",
   "extensions": {
     "durableTask": {
-      "hubName": "default",
+      "hubName": "PersonalAgentHub",
       "storageProvider": {
-        "type": "AzureManaged",
-        "connectionStringName": "DURABLE_TASK_SCHEDULER_CONNECTION_STRING"
+        "connectionStringName": "AzureWebJobsStorage"
       }
     }
   },

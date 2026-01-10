@@ -48,6 +48,17 @@ public static class AgentBuilderExtensions
         builder.Services.AddSingleton(appSettings);
         builder.Services.AddHttpClient();
         
+        // Add CORS for Chat app (allows any origin in development)
+        builder.Services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
+        });
+        
         // Auto-register tool dependencies based on discovered tools
         RegisterToolDependencies(builder.Services, appSettings, discoveredTools);
         
@@ -179,6 +190,9 @@ public static class AgentBuilderExtensions
     {
         var appSettings = app.Services.GetRequiredService<AppSettings>();
         var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("AgentFramework.Startup");
+        
+        // Enable CORS for Chat app
+        app.UseCors();
         
         if (appSettings.Provider.DevUI)
         {
