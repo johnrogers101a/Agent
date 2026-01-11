@@ -2,25 +2,14 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <AzureFunctionsVersion>v4</AzureFunctionsVersion>
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UserSecretsId>e595110b-1ec5-45bc-a91f-01ecdeee5b6a</UserSecretsId>
-    <_FunctionsSkipCleanOutput>true</_FunctionsSkipCleanOutput>
-    <!-- Disable Azure Functions run behavior for local dev - run as standard web app -->
-    <AzureFunctionsRunCommand></AzureFunctionsRunCommand>
-    <RunCommand>dotnet</RunCommand>
-    <RunArguments>$(OutputPath)$(AssemblyName).dll</RunArguments>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.0.0-preview.251219.1" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.50.0" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.0.0" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.DurableTask" Version="1.11.0" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.DurableTask.AzureManaged" Version="1.0.1" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>
@@ -33,18 +22,8 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="appsettings.Azure.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="Agents\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="host.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="local.settings.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </None>
   </ItemGroup>
 

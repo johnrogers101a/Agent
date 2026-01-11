@@ -34,6 +34,14 @@ public static class AgentBuilderExtensions
         var loggerFactory = tempProvider.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger("AgentFramework.Startup");
         
+        // Ensure user secrets are loaded into the WebApplicationBuilder's configuration
+        // This is necessary because tools injected via DI use IConfiguration, not AppSettings
+        var entryAssembly = System.Reflection.Assembly.GetEntryAssembly();
+        if (entryAssembly != null)
+        {
+            builder.Configuration.AddUserSecrets(entryAssembly, optional: true);
+        }
+        
         var appSettings = AppSettings.LoadConfiguration(configFileName);
         
         // Load all assemblies from the app directory to ensure tool assemblies are available

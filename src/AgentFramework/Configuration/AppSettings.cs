@@ -13,7 +13,6 @@ public class AppSettings
     {
         var builder = new ConfigurationBuilder()
             .AddJsonFile(fileName, optional: true)
-            .AddJsonFile("appsettings.Azure.json", optional: true)
             .AddEnvironmentVariables();
 
         // Try to load user secrets from the entry assembly (the main app)
@@ -34,10 +33,6 @@ public class AppSettings
         public string? ApiKey { get; set; }
         public bool DevUI { get; set; } = false;
         public int DevUIPort { get; set; } = 8080;
-        /// <summary>
-        /// When true, runs as Azure Functions with durable agents. When false, runs as WebApplication with DevUI.
-        /// </summary>
-        public bool FunctionMode { get; set; } = false;
     }
 
     public class ClientsSettings

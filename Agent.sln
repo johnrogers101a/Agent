@@ -13,6 +13,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Weather", "src\Tools\Weathe
 EndProject
 Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "Chat", "src\Chat\Chat.esproj", "{D8F7B8A1-4C2E-4D9F-A1B3-5E6F7C8D9E0F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{9F5A0EBF-9793-4A00-98DA-9FF8EE2E093D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Agents", "Agents", "{ACCB7FB4-0249-4298-87B0-BAC0215C423B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -86,6 +90,11 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C1234567-1234-1234-1234-123456789013} = {ACCB7FB4-0249-4298-87B0-BAC0215C423B}
+		{08AD6377-55FA-4446-A5EE-9DFFBFEF688D} = {9F5A0EBF-9793-4A00-98DA-9FF8EE2E093D}
+		{EE782E12-0E8D-4D91-AD1D-605A26DC1985} = {9F5A0EBF-9793-4A00-98DA-9FF8EE2E093D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C674C6D1-2023-485D-91DB-FD660D599047}
