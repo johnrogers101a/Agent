@@ -72,11 +72,35 @@ Tools are automatically discovered from referenced assemblies. No registration r
 
 ```
 Agent.sln
-├── src/AgentFramework/     # Core framework library
-├── src/PersonalAgent/      # Your agent application
-├── src/Gmail/              # Gmail tools library
-└── src/Weather/            # Weather tools library
+├── src/AgentFramework/        # Core framework library
+├── src/Agents/Personal/       # Example agent application
+└── src/Tools/                 # Tool libraries
+    ├── Weather/               # Google Weather API tools
+    ├── Gmail/                 # Gmail API tools
+    ├── Graph/                 # Microsoft Graph API tools
+    ├── Hotmail/               # Hotmail/Outlook consumer tools
+    └── Common/                # Shared tool utilities
 ```
+
+## Developer Workflows
+
+```powershell
+# Run the agent locally
+.\src\scripts\start-agent.ps1
+
+# Deploy to Azure AI Foundry (idempotent, uses Pester tests for validation)
+.\src\scripts\deploy.ps1
+```
+
+### Azure Deployment Details
+
+The `deploy.ps1` script creates all required infrastructure:
+- Resource Group, AI Services Account, Foundry Project
+- Model Deployment (gpt-4.1 via GlobalStandard SKU)
+- Network Rules (IP whitelisting), RBAC Role Assignment
+- Storage Account + Azure Functions (Flex Consumption)
+
+Configuration in `src/scripts/AzFoundryDeploy/Config.psd1`.
 
 ## Providers
 
@@ -85,11 +109,19 @@ Agent.sln
 | Ollama | `Ollama` | None | Local development |
 | Azure OpenAI | `AzureFoundry` | Azure CLI or API key | Production deployment |
 
+## Email Tools
+
+| Provider | Tools | Auth |
+|----------|-------|------|
+| Gmail | `GetGmail`, `SearchGmail`, `GetGmailContents` | Google OAuth2 + PKCE |
+| Graph | `GraphApiTool` | Azure.Identity (Work/School accounts) |
+| Hotmail | `GetHotmail`, `SearchHotmail`, `GetHotmailContents` | Azure.Identity (Personal accounts) |
+
 ## Runtime Modes
 
 | Mode | Config | Description |
 |------|--------|-------------|
-| DevUI | `"DevUI": true` | Interactive web chat interface |
+| DevUI | `"DevUI": true` | Interactive web chat interface with OpenTelemetry tracing |
 | API | `"DevUI": false` | OpenAI-compatible REST API ([spec](https://docs.ollama.com/api/openai-compatibility)) |
 
 ## Resources

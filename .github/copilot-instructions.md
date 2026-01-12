@@ -4,23 +4,24 @@
 
 This is a .NET 10 AI Agent framework built on [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) (`Microsoft.Agents.AI` SDK), designed for deployment to [Microsoft Foundry](https://learn.microsoft.com/en-us/azure/ai-foundry/what-is-foundry).
 
-### Multi-Project Structure
+### Project Structure
 
 ```
 Agent.sln
-├── src/AgentFramework/     # Core framework library (Microsoft.Agents.AI, DevUI, OllamaSharp)
-│   ├── Core/               # AgentFactory, DevUIAwareAgent, McpToolDiscovery
-│   ├── Attributes/         # McpToolAttribute
-│   ├── Extensions/         # ConfigureAgent(), UseAgents()
-│   └── Infrastructure/     # ChatClientProviderFactory, Providers/
-├── src/PersonalAgent/      # Example agent application
-│   ├── Program.cs          # 4 lines of code
-│   ├── appsettings.json    # Agent configuration
-│   └── Agents/             # Markdown instruction files
-├── src/Gmail/              # Gmail tools library
-│   └── Tools/              # GetMail, SearchMail, GetMailContents
-└── src/Weather/            # Weather tools library
-    └── Tools/              # GetWeatherByZip, GetDailyForecastByZip, etc.
+├── src/AgentFramework/        # Core framework library
+│   ├── Core/                  # AgentFactory, McpToolDiscovery, ConversationMemory
+│   ├── Attributes/            # McpToolAttribute
+│   ├── Extensions/            # ConfigureAgent(), UseAgents()
+│   └── Infrastructure/        # ChatClientProviderFactory, Providers/
+├── src/Agents/Personal/       # Example agent application (4 lines of code)
+├── src/Tools/                 # Tool libraries (auto-discovered via [McpTool])
+│   ├── Weather/               # Google Weather API tools
+│   ├── Gmail/                 # Gmail API tools
+│   ├── Graph/                 # Microsoft Graph API tools
+│   ├── Hotmail/               # Hotmail/Outlook consumer tools
+│   └── Common/                # Shared tool utilities
+└── src/scripts/               # Deployment and startup scripts
+    └── AzFoundryDeploy/       # PowerShell module for Azure deployment
 ```
 
 ### Key Architectural Decisions
@@ -29,25 +30,12 @@ Agent.sln
 - **Declarative agent config** in `appsettings.json`, not code
 - **Agent instructions** in markdown files under `Agents/` folder
 - **Automatic tool discovery** via `[McpTool]` attribute — no manual registration
-- **XML documentation** provides tool and parameter descriptions
+- **XML documentation** provides tool and parameter descriptions (not `[Description]` attributes)
 - **DI-based tools** with constructor injection for `HttpClient`, `IConfiguration`, `ILogger`, etc.
-- **OpenAI-compatible API** following [Ollama API spec](https://docs.ollama.com/api/openai-compatibility)
 
-## Adding New Capabilities
+## Adding a New Tool
 
-### Adding a New Tool
-
-1. Create a tool class in a `Tools/` folder (in any referenced project):
-   - Use XML doc comments for class and method descriptions
-   - Mark the execution method with `[McpTool]` attribute
-   - Use constructor injection for dependencies
-   - Return a typed response object
-
-2. Reference the tool's project from your agent application
-
-3. Add the tool name to the agent's `Tools` array in `appsettings.json`
-
-**Example tool:**
+1. Create a tool class in `src/Tools/{ServiceName}/Tools/`:
 ```csharp
 /// <summary>
 /// Gets current weather for a US zip code using Google Weather API.
@@ -62,91 +50,71 @@ public class GetWeatherByZip
     {
         _http = httpClient;
         _logger = logger;
-        _apiKey = config["Clients:Weather:ApiKey"]!;
+        _apiKey = config[ConfigKeys.ApiKey]!;  // Use constants, not magic strings
     }
 
-    /// <summary>
-    /// Gets current weather for a US zip code.
-    /// </summary>
+    /// <summary>Gets current weather for a US zip code.</summary>
     /// <param name="zipCode">US zip code (e.g., 98052).</param>
     [McpTool]
     public async Task<CurrentWeatherResponse> ExecuteAsync(string zipCode)
     {
-        // Implementation here
+        // Return typed response objects, not formatted strings
     }
 }
 ```
 
-### Adding External API Clients
-
-1. Create a tools library project (e.g., `src/MyService/`)
-2. Add tool classes with `[McpTool]` methods
-3. Add configuration section to `AppSettings.cs` under `ClientsSettings`
-4. Reference the project from your agent application
-
-### Adding a New LLM Provider
-
-1. Implement `IChatClientProvider` in `Infrastructure/Providers/`
-2. Register in `ChatClientProviderFactory._providers` dictionary
-3. Set `Provider.Type` in `appsettings.json`
-
-Current providers: `Ollama` (local), `AzureFoundry` (Azure OpenAI with CLI or API key auth)
+2. Add the tool name to the agent's `Tools` array in `appsettings.json`
 
 ## Configuration
 
 All runtime config is in `appsettings.json`:
+- `Provider.Type`: `Ollama` (local) or `AzureFoundry` (Azure OpenAI)
+- `Provider.DevUI`: `true` for interactive chat, `false` for REST API mode
+- `Clients.*`: API keys and OAuth config for external services
+- `Agents[].Tools`: Array of tool class names to enable
 
-```json
-{
-  "Provider": {
-    "Type": "Ollama",
-    "Endpoint": "http://localhost:11434",
-    "ModelName": "llama3.2:latest",
-    "DevUI": true,
-    "DevUIPort": 8080
-  },
-  "Clients": {
-    "Weather": { "ApiKey": "..." },
-    "Gmail": { "ClientId": "...", "ClientSecret": "..." }
-  },
-  "Agents": [
-    {
-      "Name": "Personal",
-      "InstructionsFileName": "Agents/personal.md",
-      "Tools": ["GetWeatherByZip", "GetMail", "SearchMail"]
-    }
-  ]
-}
-```
+## Email Tool Providers
 
-## Runtime Modes
+Three separate email integrations with different auth mechanisms:
 
-### DevUI Mode (`"DevUI": true`)
-- Interactive web chat interface
-- Opens browser automatically
-- OpenTelemetry tracing enabled
+| Provider | Tools | Auth | Tenant |
+|----------|-------|------|--------|
+| **Gmail** | `GetGmail`, `SearchGmail`, `GetGmailContents` | Google OAuth2 + PKCE via `AuthService` | N/A |
+| **Graph** | `GraphApiTool` (generic Graph API) | Azure.Identity (`InteractiveBrowserCredential` or `DeviceCodeCredential`) | Work/School (Azure AD) |
+| **Hotmail** | `GetHotmail`, `SearchHotmail`, `GetHotmailContents` | Azure.Identity with `TenantId: "consumers"` | Personal Microsoft accounts |
 
-### API Mode (`"DevUI": false`)
-- Exposes OpenAI-compatible REST endpoints ([spec](https://docs.ollama.com/api/openai-compatibility))
-- Use agents as drop-in replacement for Ollama/OpenAI
+- Gmail uses custom `AuthService` with local OAuth callback and PKCE
+- Graph/Hotmail use `*ClientFactory` classes with Azure.Identity token cache persistence
+- Graph supports any Azure AD tenant; Hotmail hardcodes `"consumers"` tenant
 
-## Running the Application
+## Scripts and Deployment
 
-```bash
-dotnet run                    # Starts in configured mode
-```
+### `src/scripts/start-agent.ps1`
+Simple wrapper that runs `dotnet run` in the Personal agent project.
+
+### `src/scripts/deploy.ps1`
+Idempotent Azure deployment script that orchestrates full infrastructure:
+1. Resource Group, AI Services Account, Foundry Project
+2. Model Deployment (gpt-4.1 via GlobalStandard SKU)
+3. Network Rules (IP whitelisting), RBAC Role Assignment
+4. Storage Account + Azure Functions (Flex Consumption) for durable endpoints
+
+Uses Pester tests for validation. Requires Azure CLI login.
+
+### `src/scripts/AzFoundryDeploy/` module structure:
+- `Config.psd1` — All deployment settings (subscription, resource names, model config)
+- `Private/` — Individual deployment functions:
+  - `Initialize-*.ps1` — ResourceGroup, AIServiceAccount, FoundryProject, ModelDeployment, StorageAccount, FunctionApp
+  - `Add-NetworkRule.ps1`, `Add-RbacRoleAssignment.ps1`
+  - `Update-AppSettings.ps1` — Patches appsettings.json with deployed endpoints
+- `Tests/` — Pester tests (`Deploy-AzFoundry.Tests.ps1`, `Deploy-DurableAgent.Tests.ps1`)
 
 ## Code Conventions
 
-- **DI-based tool classes** with constructor injection
 - **Nullable reference types** enabled (`#nullable enable`)
-- **Async/await** throughout with `CancellationToken` support
-- **XML documentation** for tool descriptions (not `[Description]` attributes)
+- **Constants classes** for config keys, URLs, error messages (see `Constants.cs` in each tool project)
 - **Typed response objects** from tools (not formatted strings)
-- Configuration uses nested record-style classes in `AppSettings`
-
-## Resources
-
-- [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) — Foundation SDK
+- **Async/await** throughout with proper logging
+- Configuration uses `ConfigKeys` constants, not magic strings
 - [Microsoft Foundry](https://learn.microsoft.com/en-us/azure/ai-foundry/what-is-foundry) — Production deployment
 - [Ollama OpenAI Compatibility](https://docs.ollama.com/api/openai-compatibility) — API specification
