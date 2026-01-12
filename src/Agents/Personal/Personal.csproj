@@ -17,6 +17,8 @@
     <ProjectReference Include="..\..\Tools\Gmail\Gmail.csproj" />
     <ProjectReference Include="..\..\Tools\Weather\Weather.csproj" />
     <ProjectReference Include="..\..\Tools\Graph\Graph.csproj" />
+    <ProjectReference Include="..\..\Tools\Hotmail\Hotmail.csproj" />
+    <ProjectReference Include="..\..\Tools\Common\Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>

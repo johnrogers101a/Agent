@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Text;
+using System.Text.Json;
 using AgentFramework.Attributes;
 using AgentFramework.Http;
 using Gmail.Models;
@@ -9,67 +10,69 @@ using Microsoft.Extensions.Logging;
 namespace Gmail.Tools;
 
 /// <summary>
-/// Retrieves full email content by message ID.
+/// Retrieves full email content by Gmail message ID.
 /// </summary>
-public class GetMailContents : ClientBase
+public class GetGmailContents : ClientBase
 {
-    private readonly AuthService _auth;
-    private readonly ILogger<GetMailContents> _logger;
+    private static readonly JsonSerializerOptions s_jsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    public GetMailContents(HttpClient httpClient, AuthService auth, ILogger<GetMailContents> logger) 
-        : base(httpClient, Urls.GmailApi)
+    private readonly AuthService _auth;
+    private readonly ILogger<GetGmailContents> _logger;
+
+    public GetGmailContents(HttpClient httpClient, AuthService auth, ILogger<GetGmailContents> logger) 
+        : base(httpClient, Urls.GmailApi, s_jsonOptions)
     {
         _auth = auth;
         _logger = logger;
     }
 
     /// <summary>
-    /// Retrieves the full content of a specific email by its message ID. Use this after GetMail or SearchMail to read the complete email body.
+    /// Retrieves the full content of a specific Gmail email by its message ID. Use this after GetGmail or SearchGmail to read the complete email body.
     /// </summary>
-    /// <param name="messageId">The unique Gmail message ID obtained from GetMail or SearchMail results.</param>
+    /// <param name="messageId">The unique Gmail message ID obtained from GetGmail or SearchGmail results.</param>
     [McpTool]
-    public async Task<GetMailContentsResponse> ExecuteAsync(string messageId)
+    public async Task<GetGmailContentsResponse> ExecuteAsync(string messageId)
     {
-        _logger.LogTrace("GetMailContents starting for MessageId={MessageId}", messageId);
+        _logger.LogTrace("GetGmailContents starting for MessageId={MessageId}", messageId);
 
         if (string.IsNullOrWhiteSpace(messageId))
         {
-            _logger.LogWarning("GetMailContents failed: MessageId is required");
-            return new GetMailContentsResponse(false, null, Errors.MessageIdRequired);
+            _logger.LogWarning("GetGmailContents failed: MessageId is required");
+            return new GetGmailContentsResponse(false, null, Errors.MessageIdRequired);
         }
 
         var token = await _auth.GetAccessTokenAsync();
         if (string.IsNullOrEmpty(token))
         {
-            _logger.LogWarning("GetMailContents failed: Unable to obtain access token");
-            return new GetMailContentsResponse(false, null, Errors.UnableToObtainToken);
+            _logger.LogWarning("GetGmailContents failed: Unable to obtain access token");
+            return new GetGmailContentsResponse(false, null, Errors.UnableToObtainToken);
         }
-        _logger.LogTrace("GetMailContents obtained access token");
+        _logger.LogTrace("GetGmailContents obtained access token");
 
         var httpRequest = Get($"messages/{messageId}")
             .AddQueryParam("format", "full")
             .SetBearerAuth(token);
 
-        _logger.LogTrace("GetMailContents fetching full message from {Url}", httpRequest.BuildUrl());
+        _logger.LogTrace("GetGmailContents fetching full message from {Url}", httpRequest.BuildUrl());
         var response = await SendAsync<FullMessageResponse>(httpRequest);
         
         if (!response.IsSuccess)
         {
-            _logger.LogWarning("GetMailContents failed: {StatusCode} {Error}", response.StatusCode, response.Error);
-            return new GetMailContentsResponse(false, null, string.Format(Errors.FailedToFetchMessage, response.StatusCode));
+            _logger.LogWarning("GetGmailContents failed: {StatusCode} {Error}", response.StatusCode, response.Error);
+            return new GetGmailContentsResponse(false, null, string.Format(Errors.FailedToFetchMessage, response.StatusCode));
         }
 
         if (response.Data is null)
         {
-            _logger.LogWarning("GetMailContents returned no data for MessageId={MessageId}", messageId);
-            return new GetMailContentsResponse(false, null, Errors.MessageNotFound);
+            _logger.LogWarning("GetGmailContents returned no data for MessageId={MessageId}", messageId);
+            return new GetGmailContentsResponse(false, null, Errors.MessageNotFound);
         }
 
         var data = response.Data;
         var headers = data.Payload?.Headers ?? [];
         var body = ExtractBody(data.Payload);
         
-        _logger.LogTrace("GetMailContents extracted body with {Length} characters", body.Length);
+        _logger.LogTrace("GetGmailContents extracted body with {Length} characters", body.Length);
 
         var email = new EmailDetail(
             data.Id,
@@ -81,8 +84,8 @@ public class GetMailContents : ClientBase
             ParseDate(data.InternalDate),
             body);
 
-        _logger.LogTrace("GetMailContents completed successfully: Subject={Subject}", email.Subject);
-        return new GetMailContentsResponse(true, email);
+        _logger.LogTrace("GetGmailContents completed successfully: Subject={Subject}", email.Subject);
+        return new GetGmailContentsResponse(true, email);
     }
 
     private static string GetHeader(MessageHeader[] headers, string name) =>

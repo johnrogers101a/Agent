@@ -201,6 +201,21 @@ public static class AgentBuilderExtensions
                         });
                         registeredTypes.Add(paramType);
                     }
+                    
+                    // Register Hotmail.HotmailClientFactory if a tool depends on it
+                    if (paramType.FullName == "Hotmail.HotmailClientFactory")
+                    {
+                        services.AddSingleton(paramType, sp =>
+                        {
+                            var settings = sp.GetRequiredService<AppSettings>();
+                            var hotmailSettings = settings.Clients.Hotmail;
+                            
+                            // Use reflection to invoke the constructor
+                            var ctorInfo = paramType.GetConstructors().First();
+                            return ctorInfo.Invoke([hotmailSettings]);
+                        });
+                        registeredTypes.Add(paramType);
+                    }
                 }
             }
         }

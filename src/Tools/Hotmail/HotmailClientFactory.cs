@@ -2,19 +2,19 @@ using Azure.Core;
 using Azure.Identity;
 using AgentFramework.Configuration;
 
-namespace Graph;
+namespace Hotmail;
 
 /// <summary>
-/// Factory for acquiring Microsoft Graph API tokens using delegated authentication.
+/// Factory for acquiring Microsoft Graph API tokens for personal Microsoft accounts (Hotmail/Outlook.com).
 /// Tokens are cached automatically by Azure.Identity with persistent storage.
 /// </summary>
-public class GraphClientFactory
+public class HotmailClientFactory
 {
-    private readonly AppSettings.GraphSettings _settings;
+    private readonly AppSettings.HotmailSettings _settings;
     private TokenCredential? _credential;
     private static bool _authInstructionsPrinted = false;
 
-    public GraphClientFactory(AppSettings.GraphSettings settings)
+    public HotmailClientFactory(AppSettings.HotmailSettings settings)
     {
         _settings = settings;
     }
@@ -31,15 +31,14 @@ public class GraphClientFactory
             if (!_authInstructionsPrinted)
             {
                 Console.WriteLine("\n" + new string('=', 80));
-                Console.WriteLine("MICROSOFT GRAPH AUTHENTICATION REQUIRED");
+                Console.WriteLine("HOTMAIL/OUTLOOK.COM AUTHENTICATION REQUIRED");
                 Console.WriteLine(new string('=', 80));
                 Console.WriteLine($"Authentication Mode: {_settings.LoginMode}");
-                Console.WriteLine($"Tenant: {_settings.TenantId}");
                 Console.WriteLine($"Scopes: {string.Join(", ", scopes)}");
                 
                 if (_settings.LoginMode.Equals("Interactive", StringComparison.OrdinalIgnoreCase))
                 {
-                    Console.WriteLine("\nA browser window will open for you to sign in with your Microsoft account.");
+                    Console.WriteLine("\nA browser window will open for you to sign in with your personal Microsoft account.");
                     Console.WriteLine("After signing in, the token will be cached for future requests.");
                 }
                 else
@@ -51,17 +50,20 @@ public class GraphClientFactory
                 _authInstructionsPrinted = true;
             }
 
+            // Use "consumers" tenant for personal Microsoft accounts
+            var tenantId = _settings.TenantId ?? "consumers";
+
             _credential = _settings.LoginMode.Equals("Interactive", StringComparison.OrdinalIgnoreCase)
                 ? new InteractiveBrowserCredential(new InteractiveBrowserCredentialOptions
                 {
-                    TenantId = _settings.TenantId,
+                    TenantId = tenantId,
                     ClientId = _settings.ClientId,
                     RedirectUri = new Uri("http://localhost"),
                     TokenCachePersistenceOptions = GetCacheOptions()
                 })
                 : new DeviceCodeCredential(new DeviceCodeCredentialOptions
                 {
-                    TenantId = _settings.TenantId,
+                    TenantId = tenantId,
                     ClientId = _settings.ClientId,
                     DeviceCodeCallback = (code, cancellation) =>
                     {
@@ -80,7 +82,7 @@ public class GraphClientFactory
         var tokenContext = new TokenRequestContext(scopes);
         var token = await _credential.GetTokenAsync(tokenContext, default);
         
-        Console.WriteLine($"[Graph Auth] Token acquired successfully (expires: {token.ExpiresOn:yyyy-MM-dd HH:mm:ss})");
+        Console.WriteLine($"[Hotmail Auth] Token acquired successfully (expires: {token.ExpiresOn:yyyy-MM-dd HH:mm:ss})");
         
         return token.Token;
     }

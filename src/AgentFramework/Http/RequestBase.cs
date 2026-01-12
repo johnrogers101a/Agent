@@ -14,7 +14,7 @@ public class RequestBase<T>
     public HttpMethod Method { get; set; } = HttpMethod.Get;
     public string Endpoint { get; set; } = string.Empty;
     public Dictionary<string, string> Headers { get; } = new();
-    public Dictionary<string, string> QueryParams { get; } = new();
+    public List<KeyValuePair<string, string>> QueryParams { get; } = new();
     public T? Body { get; set; }
 
     public RequestBase() { }
@@ -37,11 +37,11 @@ public class RequestBase<T>
     }
 
     /// <summary>
-    /// Adds a query parameter.
+    /// Adds a query parameter. Supports multiple values for the same key.
     /// </summary>
     public RequestBase<T> AddQueryParam(string key, string value)
     {
-        QueryParams[key] = value;
+        QueryParams.Add(new KeyValuePair<string, string>(key, value));
         return this;
     }
 
@@ -51,7 +51,7 @@ public class RequestBase<T>
     public RequestBase<T> AddQueryParamIfNotEmpty(string key, string? value)
     {
         if (!string.IsNullOrEmpty(value))
-            QueryParams[key] = value;
+            QueryParams.Add(new KeyValuePair<string, string>(key, value));
         return this;
     }
 
@@ -118,11 +118,11 @@ public class RequestBase : RequestBase<object>
     }
 
     /// <summary>
-    /// Adds a query parameter.
+    /// Adds a query parameter. Supports multiple values for the same key.
     /// </summary>
     public new RequestBase AddQueryParam(string key, string value)
     {
-        QueryParams[key] = value;
+        QueryParams.Add(new KeyValuePair<string, string>(key, value));
         return this;
     }
 
@@ -132,7 +132,7 @@ public class RequestBase : RequestBase<object>
     public new RequestBase AddQueryParamIfNotEmpty(string key, string? value)
     {
         if (!string.IsNullOrEmpty(value))
-            QueryParams[key] = value;
+            QueryParams.Add(new KeyValuePair<string, string>(key, value));
         return this;
     }
 }

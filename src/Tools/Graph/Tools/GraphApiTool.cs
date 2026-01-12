@@ -26,7 +26,7 @@ public class GraphApiTool
     /// Calls Microsoft Graph API for user, mail, calendar, files, and organizational data.
     /// </summary>
     /// <param name="method">HTTP method (GET, POST, PUT, PATCH, DELETE)</param>
-    /// <param name="path">API path starting with /v1.0 or /beta (e.g., /v1.0/me, /v1.0/me/messages)</param>
+    /// <param name="path">API path (e.g., /me, /me/messages). Version prefix /v1.0 is added automatically if not specified.</param>
     /// <param name="body">Optional request body as JSON string</param>
     [McpTool]
     public async Task<string> ExecuteAsync(string method, string path, string? body = null)
@@ -36,7 +36,10 @@ public class GraphApiTool
             _logger.LogTrace("GraphApiTool starting: {Method} {Path}", method, path);
 
             var token = await _clientFactory.GetTokenAsync(_scopes);
-            var url = path.StartsWith("http") ? path : $"https://graph.microsoft.com{path}";
+            
+            // Normalize the path - add /v1.0 prefix if not already present
+            var normalizedPath = NormalizePath(path);
+            var url = normalizedPath.StartsWith("http") ? normalizedPath : $"https://graph.microsoft.com{normalizedPath}";
             
             return await ExecuteRequestAsync(method, url, body, token);
         }
@@ -71,5 +74,24 @@ public class GraphApiTool
         }
 
         return responseBody;
+    }
+
+    private static string NormalizePath(string path)
+    {
+        // If it's a full URL, return as-is
+        if (path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            return path;
+
+        // Ensure path starts with /
+        if (!path.StartsWith('/'))
+            path = "/" + path;
+
+        // If path already has version prefix, return as-is
+        if (path.StartsWith("/v1.0", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/beta", StringComparison.OrdinalIgnoreCase))
+            return path;
+
+        // Add /v1.0 prefix
+        return "/v1.0" + path;
     }
 }

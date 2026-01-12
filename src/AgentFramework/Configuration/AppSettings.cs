@@ -40,6 +40,7 @@ public class AppSettings
         public WeatherSettings Weather { get; set; } = new();
         public GmailSettings Gmail { get; set; } = new();
         public GraphSettings Graph { get; set; } = new();
+        public HotmailSettings Hotmail { get; set; } = new();
     }
 
     public class WeatherSettings
@@ -58,7 +59,18 @@ public class AppSettings
         public string TenantId { get; set; } = string.Empty;
         public string ClientId { get; set; } = string.Empty;
         public string? TokenCachePath { get; set; }
-        public string LoginMode { get; set; } = "DeviceCode";
+        public string LoginMode { get; set; } = "Interactive";
+    }
+
+    public class HotmailSettings
+    {
+        public string ClientId { get; set; } = string.Empty;
+        /// <summary>
+        /// Tenant ID for authentication. Use "consumers" for personal Microsoft accounts.
+        /// </summary>
+        public string? TenantId { get; set; } = "consumers";
+        public string? TokenCachePath { get; set; }
+        public string LoginMode { get; set; } = "Interactive";
     }
 
     public class AgentSettings

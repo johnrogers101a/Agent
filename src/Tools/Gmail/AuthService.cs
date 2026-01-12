@@ -19,6 +19,7 @@ public class AuthService
     private readonly string _clientSecret;
     private readonly string _tokenFile;
     private TokenData? _token;
+    private string? _userEmail;
 
     public AuthService(HttpClient http, string clientId, string clientSecret, string tokenFile = Defaults.TokenFile)
     {
@@ -44,6 +45,30 @@ public class AuthService
         var newToken = await AuthenticateAsync();
         return newToken?.AccessToken;
     }
+
+    /// <summary>
+    /// Gets the authenticated user's email address from Gmail profile API.
+    /// </summary>
+    public async Task<string?> GetUserEmailAsync()
+    {
+        if (_userEmail is not null)
+            return _userEmail;
+
+        var token = await GetAccessTokenAsync();
+        if (token is null) return null;
+
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{Urls.GmailApi}/profile");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var response = await _http.SendAsync(request);
+        if (!response.IsSuccessStatusCode) return null;
+
+        var profile = await response.Content.ReadFromJsonAsync<GmailProfile>();
+        _userEmail = profile?.EmailAddress;
+        return _userEmail;
+    }
+
+    private record GmailProfile(string EmailAddress);
 
     private async Task<TokenData?> AuthenticateAsync()
     {
