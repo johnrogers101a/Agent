@@ -186,6 +186,21 @@ public static class AgentBuilderExtensions
                         });
                         registeredTypes.Add(paramType);
                     }
+                    
+                    // Register Graph.GraphClientFactory if a tool depends on it
+                    if (paramType.FullName == "Graph.GraphClientFactory")
+                    {
+                        services.AddSingleton(paramType, sp =>
+                        {
+                            var settings = sp.GetRequiredService<AppSettings>();
+                            var graphSettings = settings.Clients.Graph;
+                            
+                            // Use reflection to invoke the constructor
+                            var ctorInfo = paramType.GetConstructors().First();
+                            return ctorInfo.Invoke([graphSettings]);
+                        });
+                        registeredTypes.Add(paramType);
+                    }
                 }
             }
         }

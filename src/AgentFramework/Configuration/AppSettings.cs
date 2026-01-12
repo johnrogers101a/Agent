@@ -39,6 +39,7 @@ public class AppSettings
     {
         public WeatherSettings Weather { get; set; } = new();
         public GmailSettings Gmail { get; set; } = new();
+        public GraphSettings Graph { get; set; } = new();
     }
 
     public class WeatherSettings
@@ -50,6 +51,14 @@ public class AppSettings
     {
         public string ClientId { get; set; } = string.Empty;
         public string ClientSecret { get; set; } = string.Empty;
+    }
+
+    public class GraphSettings
+    {
+        public string TenantId { get; set; } = string.Empty;
+        public string ClientId { get; set; } = string.Empty;
+        public string? TokenCachePath { get; set; }
+        public string LoginMode { get; set; } = "DeviceCode";
     }
 
     public class AgentSettings

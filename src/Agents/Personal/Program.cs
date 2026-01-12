@@ -1,5 +1,3 @@
-// Copyright (c) 4JS. All rights reserved.
-
 using AgentFramework.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
