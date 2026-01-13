@@ -13,12 +13,19 @@ Agent.sln
 │   ├── Attributes/            # McpToolAttribute
 │   ├── Extensions/            # ConfigureAgent(), UseAgents()
 │   └── Infrastructure/        # ChatClientProviderFactory, Providers/
+├── src/Crawl4AI.Net/          # LLM-optimized content extraction library
+│   ├── Abstractions/          # IContentFilter, IMarkdownGenerator, MarkdownResult
+│   ├── Filters/               # PruningContentFilter, Bm25ContentFilter
+│   ├── Markdown/              # MarkdownGenerator (HTML-to-Markdown)
+│   ├── Html/                  # HtmlCleaner utilities
+│   └── Algorithms/            # Bm25Okapi, EnglishStemmer
 ├── src/Agents/Personal/       # Example agent application (4 lines of code)
 ├── src/Tools/                 # Tool libraries (auto-discovered via [McpTool])
 │   ├── Weather/               # Google Weather API tools
 │   ├── Gmail/                 # Gmail API tools
 │   ├── Graph/                 # Microsoft Graph API tools
 │   ├── Hotmail/               # Hotmail/Outlook consumer tools
+│   ├── Fetch/                 # Web search and content extraction tools
 │   └── Common/                # Shared tool utilities
 └── src/scripts/               # Deployment and startup scripts
     └── AzFoundryDeploy/       # PowerShell module for Azure deployment
@@ -86,6 +93,40 @@ Three separate email integrations with different auth mechanisms:
 - Gmail uses custom `AuthService` with local OAuth callback and PKCE
 - Graph/Hotmail use `*ClientFactory` classes with Azure.Identity token cache persistence
 - Graph supports any Azure AD tenant; Hotmail hardcodes `"consumers"` tenant
+
+## Web Fetch Tools
+
+The Fetch tool provides web search and content extraction:
+
+| Tool | Description |
+|------|-------------|
+| **WebSearch** | Searches the web using DuckDuckGo (no API key required) |
+| **GetPageContent** | Fetches a web page and extracts LLM-optimized markdown |
+
+### Crawl4AI.Net Library
+
+Standalone C# port of [Crawl4AI](https://github.com/unclecode/crawl4ai) content extraction algorithms:
+
+- **PruningContentFilter**: Removes boilerplate using text density, link density, and tag importance scoring
+- **Bm25ContentFilter**: Query-based content filtering using BM25 relevance ranking
+- **MarkdownGenerator**: Converts HTML to clean markdown with `fit_markdown` output
+
+### WebCrawler Service
+
+Headless Playwright browser with:
+- Azure-compatible headless mode (no display required)
+- **Error-only screenshots** - captures diagnostic screenshots only on failures
+- Extensive logging via `ILogger<T>` for debugging
+- Console message and request failure tracking
+
+Configuration in `appsettings.json`:
+```json
+"Fetch": {
+  "ScreenshotDir": "./screenshots",
+  "MaxScreenshots": 100,
+  "TimeoutMs": 30000
+}
+```
 
 ## Scripts and Deployment
 

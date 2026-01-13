@@ -19,6 +19,7 @@
     <ProjectReference Include="..\..\Tools\Graph\Graph.csproj" />
     <ProjectReference Include="..\..\Tools\Hotmail\Hotmail.csproj" />
     <ProjectReference Include="..\..\Tools\Common\Common.csproj" />
+    <ProjectReference Include="..\..\Tools\Fetch\Fetch.csproj" />
   </ItemGroup>
 
   <ItemGroup>

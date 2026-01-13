@@ -73,12 +73,14 @@ Tools are automatically discovered from referenced assemblies. No registration r
 ```
 Agent.sln
 ├── src/AgentFramework/        # Core framework library
+├── src/Crawl4AI.Net/          # LLM-optimized content extraction library
 ├── src/Agents/Personal/       # Example agent application
 └── src/Tools/                 # Tool libraries
     ├── Weather/               # Google Weather API tools
     ├── Gmail/                 # Gmail API tools
     ├── Graph/                 # Microsoft Graph API tools
     ├── Hotmail/               # Hotmail/Outlook consumer tools
+    ├── Fetch/                 # Web search and content extraction tools
     └── Common/                # Shared tool utilities
 ```
 
@@ -117,6 +119,28 @@ Configuration in `src/scripts/AzFoundryDeploy/Config.psd1`.
 | Graph | `GraphApiTool` | Azure.Identity (Work/School accounts) |
 | Hotmail | `GetHotmail`, `SearchHotmail`, `GetHotmailContents` | Azure.Identity (Personal accounts) |
 
+## Web Fetch Tools
+
+| Tool | Description |
+|------|-------------|
+| `WebSearch` | Searches the web using DuckDuckGo (no API key required) |
+| `GetPageContent` | Fetches a web page and extracts LLM-optimized markdown |
+
+### Crawl4AI.Net Library
+
+A standalone C# port of [Crawl4AI](https://github.com/unclecode/crawl4ai) content extraction algorithms:
+
+- **PruningContentFilter** — Removes boilerplate using text density, link density, and tag importance scoring
+- **Bm25ContentFilter** — Query-based content filtering using BM25 relevance ranking
+- **MarkdownGenerator** — Converts HTML to clean markdown with `fit_markdown` output
+
+### WebCrawler Features
+
+- Headless Playwright browser (Azure-compatible)
+- **Error-only screenshots** for debugging failed page loads
+- Extensive `ILogger<T>` integration
+- Console message and request failure tracking
+
 ## Runtime Modes
 
 | Mode | Config | Description |
@@ -129,4 +153,5 @@ Configuration in `src/scripts/AzFoundryDeploy/Config.psd1`.
 - [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) — The foundation this framework builds on
 - [Microsoft Foundry](https://learn.microsoft.com/en-us/azure/ai-foundry/what-is-foundry) — Production deployment platform
 - [Ollama OpenAI Compatibility](https://docs.ollama.com/api/openai-compatibility) — API specification
+- [Crawl4AI](https://github.com/unclecode/crawl4ai) — Original Python library for LLM-optimized content extraction
 - [Copilot Instructions](.github/copilot-instructions.md) — Detailed patterns for extending agents
